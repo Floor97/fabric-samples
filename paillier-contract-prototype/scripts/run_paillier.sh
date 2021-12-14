@@ -14,16 +14,12 @@ function start() {
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" \
-      -c '{"function":"StartAggregation","Args":["'$KEY'","'$ARGS3'","'$ARGS4'","'$ARGS5'"]}' \
+      -c '{"function":"StartAggregation","Args":["'$1'","'$2'","'$3'","'$4'"]}' \
       2>&1 | sed 's/result: /result:\n/g' | sed 's/status:200 /status:200\n/g'
   );
 }
 
 function add() {
-  echo "$KEY";
-  echo "$ARGS3";
-  echo "$ARGS4";
-
   RESULT=$(\
     peer chaincode invoke \
       -o localhost:7050 \
@@ -36,7 +32,7 @@ function add() {
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" \
-      -c '{"function":"AddData","Args":["'$KEY'","'$ARGS3'","'$AGRS4'"]}' \
+      -c '{"function":"AddData","Args":["'$1'","'$2'","'$3'"]}' \
       2>&1 | sed 's/result: /result:\n/g' | sed 's/status:200 /status:200\n/g'
   );
 }
@@ -54,7 +50,7 @@ function close() {
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" \
-      -c '{"function":"Close","Args":["'$KEY'"]}' \
+      -c '{"function":"Close","Args":["'$1'"]}' \
       2>&1 | sed 's/result: /result:\n/g' | sed 's/status:200 /status:200\n/g'
   );
 }
@@ -72,7 +68,7 @@ function retrieve() {
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" \
-      -c '{"function":"RetrieveAggregationProcess","Args":["'$KEY'"]}' \
+      -c '{"function":"RetrieveAggregationProcess","Args":["'$1'"]}' \
       2>&1 | sed 's/result: /result:\n/g' | sed 's/status:200 /status:200\n/g'
   );
 }
@@ -90,7 +86,7 @@ function exists() {
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" \
-      -c '{"function":"AggregationProcessExists","Args":["'$KEY'"]}' \
+      -c '{"function":"AggregationProcessExists","Args":["'$1'"]}' \
       2>&1 | sed 's/result: /result:\n/g' | sed 's/status:200 /status:200\n/g'\
   );
 }
@@ -109,17 +105,13 @@ fi
 
 TEST_NET="${PWD}/../../test-network"
 RESULT=""
-KEY="$2"
-ARGS3="$3"
-ARGS4="$4"
-ARGS5="$4"
 
 case "$1" in
-  "start"   ) start ;;
-  "add"     ) add ;;
-  "close"   ) close ;;
-  "retrieve") retrieve ;;
-  "exists"  ) exists ;;
+  "start"   ) start $2 $3 $4 $5;;
+  "add"     ) add $2 $3 $4;;
+  "close"   ) close $2;;
+  "retrieve") retrieve $2;;
+  "exists"  ) exists $2;;
   ? ) echo "Unrecognized command" ;;
 esac
 
