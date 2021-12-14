@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://hyperledger.jfrog.io/hyperledger/fabric-maven"
+    }
+    maven {
+        url 'https://jitpack.io'
+    }
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
+    implementation 'com.n1analytics:javallier_2.10:0.6.0'
+    implementation 'com.squareup.jnagmp:jnagmp:2.0.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.10.6'
+    compileOnly group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.+'
+    compileOnly group: 'org.json', name: 'json', version: '20180813'
+    implementation 'com.owlike:genson:1.5'
+}
+
+application {
+    mainClassName =  'org.hyperledger.fabric.contract.ContractRouter'
+}
+
+mainClassName = 'org.hyperledger.fabric.contract.ContractRouter'
+
+test {
+    useJUnitPlatform()
+}
+
+installDist.dependsOn check
