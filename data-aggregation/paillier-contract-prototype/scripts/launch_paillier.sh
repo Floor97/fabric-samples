@@ -7,11 +7,9 @@ function deploy() {
       exit 1
     fi
 
-    set -e
-
     # First deploy the thing
     CONTRACT_NAME="aggregation-process-contract"
-    ./network.sh deployCC -ccn "$CONTRACT_NAME"  -ccp "../paillier-contract-prototype/" -ccl java
+    ./network.sh deployCC -ccn "$CONTRACT_NAME"  -ccp "../data-aggregation/paillier-contract-prototype/" -ccl java
 
     # Export the path to some binaries
     export PATH=${PWD}/../bin:$PATH
@@ -25,9 +23,7 @@ function deploy() {
     export CORE_PEER_ADDRESS=localhost:7051
 
     # Go to the scripts folder
-    cd ../paillier-contract-prototype/scripts
-
-    set +e
+    cd ../data-aggregation/paillier-contract-prototype/scripts
 }
 
 function stop() {
@@ -37,18 +33,14 @@ function stop() {
       exit 1
     fi
 
-    set -e
     docker stop logspout || true
-    cd ../../test-network
+    cd ../../../test-network
     ./network.sh down
-    set +e
 }
 
 function start() {
-    set -e
     stop # Stop, which also changes folder
     ./network.sh up createChannel
-    set +e
 }
 
 

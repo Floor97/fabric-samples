@@ -103,7 +103,7 @@ if [ $# -eq 0 ]; then # Help menu if no args
   exit 0
 fi
 
-TEST_NET="${PWD}/../../test-network"
+TEST_NET="${PWD}/../../../test-network"
 RESULT=""
 
 case "$1" in
@@ -119,11 +119,7 @@ while read -r line; do
   if [[ $line == "payload:"* ]]; then
     IFS=':' read -r p payload <<< "$line"
     echo "payload:"
-    # jq '. | fromjson' <<< "$payload" # JQ formats into scientific notation...
-    echo "${payload:1:-1}" | sed 's/\\//g' | perl -0777 -MJSON::PP -E '
-        $j=JSON::PP->new->ascii->pretty->allow_nonref->allow_bignum;
-        $p=$j->decode(<>);
-        say $j->encode($p)'
+    echo "${payload:1:-1}" | sed 's/\\//g' | sed 's/{/{\n\t/g' | sed 's/,/,\n\t/g' | sed 's/}/\n}/g' | sed 's/:/: /g'
   else
     echo "$line"
   fi
