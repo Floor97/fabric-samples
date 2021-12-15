@@ -100,10 +100,10 @@ if [ $# -eq 0 ]; then # Help menu if no args
   echo "retrieve - To retrieve and remove the aggregation process - params: key"
   echo "exists   - To check if an aggregation process exists      - params: key"
 
-  exit 0
+  return 0
 fi
 
-TEST_NET="${PWD}/../../../test-network"
+TEST_NET="${PWD}/../../test-network"
 RESULT=""
 
 case "$1" in
@@ -112,7 +112,7 @@ case "$1" in
   "close"   ) close $2;;
   "retrieve") retrieve $2;;
   "exists"  ) exists $2;;
-  ? ) echo "Unrecognized command" ;;
+  * ) echo "Unrecognized command" && return 1;;
 esac
 
 while read -r line; do

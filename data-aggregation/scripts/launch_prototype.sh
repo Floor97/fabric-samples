@@ -5,11 +5,10 @@ function deploy() {
     # Expects to work in the 'test-network' folder
     if [ "${PWD##*/}" != "test-network" ]; then
       echo "This expects to be run from the 'test-network' folder"
-      exit 1
+      return 1
     fi
 
     # First deploy the thing
-    CONTRACT_NAME="aggregation-process-contract"
     if [[ $CONTRACT_NAME == "aggregation-process-contract" ]]; then
       ./network.sh deployCC -ccn "$CONTRACT_NAME"  -ccp "../data-aggregation/paillier-contract-prototype/" -ccl java
     else
@@ -32,7 +31,7 @@ function stop() {
     # Expects to work in the 'scripts' folder
     if [ "${PWD##*/}" != "scripts" ]; then
       echo "This expects to be run from the 'scripts' folder"
-      exit 1
+      return 1
     fi
 
     docker stop logspout || true
@@ -50,20 +49,20 @@ if [ $# -eq 0 ]; then # Help menu if no args
   echo "start   - To start the network, and then deploy"
   echo "deploy  - To deploy CC"
   echo "stop    - To stop and clean the network"
-  exit 0
+  return 0
 fi
 
 case "$2" in
   "agg"   ) CONTRACT_NAME="aggregation-process-contract";;
-  "query" ) CONTRACT_NAME="query-process-contract";;
-  * ) echo "Unrecognized contract" && exit 1;;
+  "query" ) CONTRACT_NAME="data-query-contract";;
+  * ) echo "Unrecognized contract" && return 1;;
 esac
 
 case "$1" in
   "start"  )  start && deploy  ;;
   "deploy" )  deploy ;;
   "stop"   )  stop ;;
-  * ) echo "Unrecognized command" && exit 1;;
+  * ) echo "Unrecognized command" && return 1;;
 esac
 
 cd ../data-aggregation/scripts
