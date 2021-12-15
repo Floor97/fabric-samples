@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 function deploy() {
+    cd ../../test-network
     # Expects to work in the 'test-network' folder
     if [ "${PWD##*/}" != "test-network" ]; then
       echo "This expects to be run from the 'test-network' folder"
@@ -9,7 +10,11 @@ function deploy() {
 
     # First deploy the thing
     CONTRACT_NAME="aggregation-process-contract"
-    ./network.sh deployCC -ccn "$CONTRACT_NAME"  -ccp "../data-aggregation/paillier-contract-prototype/" -ccl java
+    if [[ $CONTRACT_NAME == "aggregation-process-contract" ]]; then
+      ./network.sh deployCC -ccn "$CONTRACT_NAME"  -ccp "../data-aggregation/paillier-contract-prototype/" -ccl java
+    else
+      ./network.sh deployCC -ccn "$CONTRACT_NAME"  -ccp "../data-aggregation/data-query-contract-prototype/" -ccl java
+    fi
 
     # Export the path to some binaries
     export PATH=${PWD}/../bin:$PATH
@@ -21,9 +26,6 @@ function deploy() {
     export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
     export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
     export CORE_PEER_ADDRESS=localhost:7051
-
-    # Go to the scripts folder
-    cd ../data-aggregation/paillier-contract-prototype/scripts
 }
 
 function stop() {
@@ -34,7 +36,7 @@ function stop() {
     fi
 
     docker stop logspout || true
-    cd ../../../test-network
+    cd ../../test-network
     ./network.sh down
 }
 
@@ -42,8 +44,6 @@ function start() {
     stop # Stop, which also changes folder
     ./network.sh up createChannel
 }
-
-
 
 if [ $# -eq 0 ]; then # Help menu if no args
   echo "To use this script, use one of the options:"
@@ -53,12 +53,21 @@ if [ $# -eq 0 ]; then # Help menu if no args
   exit 0
 fi
 
+case "$2" in
+  "agg"   ) CONTRACT_NAME="aggregation-process-contract";;
+  "query" ) CONTRACT_NAME="query-process-contract";;
+  * ) echo "Unrecognized contract" && exit 1;;
+esac
+
 case "$1" in
   "start"  )  start && deploy  ;;
   "deploy" )  deploy ;;
   "stop"   )  stop ;;
-  ? ) echo "Unrecognized command" ;;
+  * ) echo "Unrecognized command" && exit 1;;
 esac
+
+cd ../data-aggregation/scripts
+
 
 
 
