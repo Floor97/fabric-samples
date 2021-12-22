@@ -1,0 +1,28 @@
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
+}
+
+dependencies {
+    implementation 'org.hyperledger.fabric:fabric-gateway-java:2.1.1'
+    implementation 'com.n1analytics:javallier_2.10:0.6.0'
+    implementation 'com.squareup.jnagmp:jnagmp:2.0.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.10.6'
+    compileOnly group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.+'
+    compileOnly group: 'org.json', name: 'json', version: '20180813'
+}
+
+//test {
+//    useJUnitPlatform()
+//}

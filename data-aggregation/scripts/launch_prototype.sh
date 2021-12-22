@@ -9,10 +9,10 @@ function deploy() {
     fi
 
     # First deploy the thing
-    if [[ $CONTRACT_NAME == "aggregation-process-contract" ]]; then
-      ./network.sh deployCC -ccn "$CONTRACT_NAME"  -ccp "../data-aggregation/paillier-contract-prototype/" -ccl java
+    if [[ $CHAINCODE_NAME == "aggregationprocess" ]]; then
+      ./network.sh deployCC -ccn "$CHAINCODE_NAME"  -ccp "../data-aggregation/paillier-contract-prototype/" -ccl java
     else
-      ./network.sh deployCC -ccn "$CONTRACT_NAME"  -ccp "../data-aggregation/data-query-contract-prototype/" -ccl java
+      ./network.sh deployCC -ccn "$CHAINCODE_NAME"  -ccp "../data-aggregation/data-query-contract-prototype/" -ccl java
     fi
 
     # Export the path to some binaries
@@ -42,6 +42,17 @@ function stop() {
 function start() {
     stop # Stop, which also changes folder
     ./network.sh up createChannel
+
+    cd ../data-aggregation/scripts
+
+    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+    echo "WORKING NOW --------------------------------------------------------------------------------------"
+    cp "${DIR}/../../test-network/organizations/peerOrganizations/org1.example.com/connection-org1.yaml" "${DIR}/../gateway/"
+    cp "${DIR}/../../test-network/organizations/peerOrganizations/org2.example.com/connection-org2.yaml" "${DIR}/../gateway/"
+    echo "WORKING NOW --------------------------------------------------------------------------------------"
+
+    cd ../../test-network
 }
 
 if [ $# -eq 0 ]; then # Help menu if no args
@@ -53,8 +64,8 @@ if [ $# -eq 0 ]; then # Help menu if no args
 fi
 
 case "$2" in
-  "agg"   ) CONTRACT_NAME="aggregation-process-contract";;
-  "query" ) CONTRACT_NAME="data-query-contract";;
+  "agg"   ) CHAINCODE_NAME="aggregationprocess";;
+  "query" ) CHAINCODE_NAME="query";;
   * ) echo "Unrecognized contract" && return 1;;
 esac
 
