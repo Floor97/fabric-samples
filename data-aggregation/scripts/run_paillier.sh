@@ -9,7 +9,7 @@ function start() {
       --tls \
       --cafile "${TEST_NET}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" \
       -C mychannel \
-      -n aggregation-process-contract \
+      -n aggregationprocess \
       --peerAddresses localhost:7051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
@@ -27,7 +27,7 @@ function add() {
       --tls \
       --cafile "${TEST_NET}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" \
       -C mychannel \
-      -n aggregation-process-contract \
+      -n aggregationprocess \
       --peerAddresses localhost:7051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
@@ -45,7 +45,7 @@ function close() {
       --tls \
       --cafile "${TEST_NET}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" \
       -C mychannel \
-      -n aggregation-process-contract \
+      -n aggregationprocess \
       --peerAddresses localhost:7051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
@@ -63,7 +63,7 @@ function retrieve() {
       --tls \
       --cafile "${TEST_NET}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" \
       -C mychannel \
-      -n aggregation-process-contract \
+      -n aggregationprocess \
       --peerAddresses localhost:7051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
@@ -81,7 +81,7 @@ function exists() {
       --tls \
       --cafile "${TEST_NET}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" \
       -C mychannel \
-      -n aggregation-process-contract \
+      -n aggregationprocess \
       --peerAddresses localhost:7051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \

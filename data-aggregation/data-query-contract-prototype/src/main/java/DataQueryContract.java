@@ -6,8 +6,9 @@ import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
 
+//todo suggestion change name to "channela.dataquery"
 @Default
-@Contract(name="data-query-contract")
+@Contract(name="eventcontract")
 public class DataQueryContract implements ContractInterface {
 
     /**

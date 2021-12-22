@@ -5,15 +5,21 @@ import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
 import org.hyperledger.fabric.contract.annotation.Default;
+import org.hyperledger.fabric.contract.annotation.Info;
 import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
+import org.hyperledger.fabric.shim.ledger.KeyValue;
+import org.hyperledger.fabric.shim.ledger.QueryResultsIterator;
 
+import java.lang.annotation.Annotation;
 import java.math.BigInteger;
+import java.util.ArrayList;
 
+//todo suggestion change name to "channelp.aggregationprocess"
 @Default
-@Contract(name="aggregation-process-contract")
-public class AggregationProcessContract implements ContractInterface {
+@Contract(name="aggregationprocess.pailliercontract")
+public class AggregationProcessContract implements ContractInterface, Contract {
 
     /**
      * Starts a data aggregation process.
@@ -96,14 +102,19 @@ public class AggregationProcessContract implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public String RetrieveAggregationProcess(Context ctx, String key) {
         ChaincodeStub stub = retrieveStub(ctx, key);
-        String serAggregationProcess = stub.getStringState(key);
-        AggregationProcess aggregationProcess = getDeserialized(serAggregationProcess);
+        return stub.getStringState(key);
+    }
 
-        if(aggregationProcess.isAggregating())
-            throw new ChaincodeException(String.format("The aggregation process, %s, is not closed, so cannot be retrieved", key));
-
+    /**
+     * The aggregation process is retrieved and removed.
+     * @param ctx the transaction context.
+     * @param key the unique key of the aggregation process.
+     * @return the aggregation process.
+     */
+    @Transaction(intent = Transaction.TYPE.EVALUATE)
+    public void RemoveAggregationProcess(Context ctx, String key) {
+        ChaincodeStub stub = retrieveStub(ctx, key);
         stub.delState(key);
-        return serAggregationProcess;
     }
 
     /**
@@ -156,5 +167,41 @@ public class AggregationProcessContract implements ContractInterface {
             throw new ChaincodeException("Unable to deserialize aggregation process");
 
         return aggregationProcess;
+    }
+
+    //todo implement Contract methods.
+    @Override
+    public Info info() {
+        return null;
+    }
+
+    @Override
+    public String name() {
+        return null;
+    }
+
+    @Override
+    public String transactionSerializer() {
+        return null;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return 0;
+    }
+
+    @Override
+    public String toString() {
+        return null;
+    }
+
+    @Override
+    public Class<? extends Annotation> annotationType() {
+        return null;
     }
 }
