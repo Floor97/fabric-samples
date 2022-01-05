@@ -1,195 +1,171 @@
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
+import org.json.JSONObject;
 
-import java.io.IOException;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-@JsonPropertyOrder({"queryID","modulus","result", "expResult","timeLimit","nrParticipants","status"})
-@JsonIgnoreProperties({"waiting", "done", "closed", "om"})
 @DataType()
 public class DataQuery {
-    private static final String WAITING = "WAITING";
-    private static final String DONE = "DONE";
-    private static final String CLOSED = "CLOSED";
-    private static final ObjectMapper om = new ObjectMapper();
 
     @Property()
-    private String queryID;
+    private String id;
 
     @Property()
-    private String modulus;
+    private DataQuerySettings settings;
 
     @Property()
-    private String result;
+    private DataQueryResult result;
 
     @Property()
-    private String expResult;
+    private DataQueryState state = DataQueryState.WAITING;
 
-    @Property()
-    private String timeLimit;
-
-    @Property()
-    private String nrParticipants;
-
-    @Property()
-    private String status;
-
-
-
-    public String getQueryID() {
-        return queryID;
+    public String getId() {
+        return id;
     }
 
-    public DataQuery setQueryID(String processID) {
-        this.queryID = processID;
+    public DataQuery setId(String id) {
+        this.id = id;
         return this;
     }
 
-    public String getModulus() {
-        return modulus;
+    public DataQuerySettings getSettings() {
+        return settings;
     }
 
-    public DataQuery setModulus(String modulus) {
-        this.modulus = modulus;
+    public DataQuery setSettings(DataQuerySettings settings) {
+        this.settings = settings;
         return this;
     }
 
-    public String getResult() {
+    public DataQueryResult getResult() {
         return result;
     }
 
-    public DataQuery setResult(String result) {
+    public DataQuery setResult(DataQueryResult result) {
         this.result = result;
         return this;
     }
 
-    public String getExpResult() {
-        return expResult;
-    }
-
-    public DataQuery setExpResult(String expResult) {
-        this.expResult = expResult;
-        return this;
-    }
-
-    public String getTimeLimit() {
-        return timeLimit;
-    }
-
-    public DataQuery setTimeLimit(String timeLimit) {
-        this.timeLimit = timeLimit;
-        return this;
-    }
-
-    public String getNrParticipants() {
-        return nrParticipants;
-    }
-
-    public DataQuery setNrParticipants(String nrParticipants) {
-        this.nrParticipants = nrParticipants;
-        return this;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public DataQuery setStatus(String status) {
-        this.status = status;
-        return this;
-    }
-
     public boolean isWaiting() {
-        return this.status.equals(DataQuery.WAITING);
+        return (state == DataQueryState.WAITING);
     }
 
     public boolean isDone() {
-        return this.status.equals(DataQuery.DONE);
+        return (state == DataQueryState.DONE);
     }
 
     public boolean isClosed() {
-        return this.status.equals(DataQuery.CLOSED);
+        return (state == DataQueryState.CLOSED);
     }
 
     public DataQuery setWaiting() {
-        this.status = DataQuery.WAITING;
+        this.state = DataQueryState.WAITING;
         return this;
     }
 
     public DataQuery setDone() {
-        this.status = DataQuery.DONE;
+        this.state = DataQueryState.DONE;
         return this;
     }
 
     public DataQuery setClosed() {
-        this.status = DataQuery.CLOSED;
+        this.state = DataQueryState.CLOSED;
         return this;
     }
 
-    /**
-     * Deserializes the JSON into an DataQuery object.
-     * @param data the JSON.
-     * @return the DataQuery object.
-     */
-    public static DataQuery deserialize(String data) {
-        DataQuery dataQuery = null;
-        try {
-            dataQuery = om.readValue(data, DataQuery.class);
-        } catch (IOException e) {
-            e.printStackTrace();
+    public static DataQuery deserialize(byte[] data) {
+        JSONObject json = new JSONObject(new String(data, UTF_8));
+
+        String id = json.getString("id");
+        String paillierModulus = json.getString("paillierModulus");
+        String postQuantumPk = json.getString("postQuantumPk");
+        int nrOperators = json.getInt("nrOperators");
+        long endTime = json.getLong("endTime");
+
+        DataQuery dataQuery;
+        if (!json.has("result")) {
+            String cipherData = json.getString("cipherData");
+            String exponent = json.getString("exponent");
+            int nrParticipants = json.getInt("nrParticipants");
+            String[] nonces = json.getJSONArray("cipherNonces").toList().toArray(new String[0]);
+            boolean incFlag = json.getBoolean("incFlag");
+
+            dataQuery = createInstance(id,
+                    DataQuerySettings.createInstance(paillierModulus, postQuantumPk, nrOperators, endTime),
+                    DataQueryResult.createInstance(new Pair<>(cipherData, exponent), nonces, nrParticipants)
+            );
+            if(incFlag) dataQuery.getResult().setIncFlag();
+        } else {
+            dataQuery = createInstance(id,
+                    DataQuerySettings.createInstance(paillierModulus, postQuantumPk, nrOperators, endTime),
+                    null
+            );
         }
+
+        dataQuery.state = json.getEnum(DataQueryState.class, "state");
         return dataQuery;
     }
 
     /**
-     * Serializes the DataQuery object into ordered JSON.
-     * @param dataQuery the data query.
-     * @return the JSON value of the DataQuery object.
+     * Serializes the DataQuery object into JSON.
+     *
+     * @param dataQuery the aggregation process.
+     * @return the JSON value of the data query object.
      */
-    public static String serialize(DataQuery dataQuery) {
-        String serDataQuery = null;
-        try {
-            serDataQuery = om.writeValueAsString(dataQuery);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        return serDataQuery;
+    public static byte[] serialize(DataQuery dataQuery) {
+        DataQueryResult res = dataQuery.getResult();
+
+        JSONObject json = new JSONObject()
+                .put("id", dataQuery.id)
+                .put("paillierModulus", dataQuery.getSettings().getPaillierModulus())
+                .put("postQuantumPk", dataQuery.getSettings().getPostQuantumPk())
+                .put("nrOperators", dataQuery.getSettings().getNrOperators())
+                .put("endTime", dataQuery.getSettings().getEndTime())
+                .put("state", dataQuery.state);
+        if (res != null)
+            json.put("cipherData", res.getCipherData().getP1())
+                    .put("exponent", res.getCipherData().getP2())
+                    .put("cipherNonces", dataQuery.getResult().getCipherNonces())
+                    .put("nrParticipants", dataQuery.getResult().getNrParticipants())
+                    .put("incFlag", dataQuery.getResult().isIncFlag());
+        else json.put("result", "null");
+        return json.toString().getBytes(UTF_8);
     }
 
     /**
      * Factory method for creating an DataQuery object.
-     * @param queryID the unique ID of the data query.
-     * @param modulus the modulus of the public key that encrypts the result.
-     * @param result the ciphertext of the result.
-     * @param expResult the exponent of the ciphertext of the result.
-     * @param timeLimit the time limit of the data query.
-     * @param nrParticipants the number of participants in the data query.
-     * @param status the status of the data query.
+     *
+     * @param id       the unique id of the process.
+     * @param settings The settings of the process.
+     * @param result   The result of the process.
      * @return the created DataQuery object.
      */
-    public static DataQuery createInstance(String queryID, String modulus, String result,
-                                           String expResult, String timeLimit, String nrParticipants, String status) {
+    public static DataQuery createInstance(String id, DataQuerySettings settings, DataQueryResult result) {
         return new DataQuery()
-                .setQueryID(queryID)
-                .setModulus(modulus)
-                .setResult(result)
-                .setExpResult(expResult)
-                .setTimeLimit(timeLimit)
-                .setNrParticipants(nrParticipants)
-                .setStatus(status);
+                .setId(id)
+                .setSettings(settings)
+                .setResult(result);
     }
 
     @Override
     public String toString() {
-        return "queryID: " + this.queryID +
-                ", modulus: " + this.modulus +
-                ", result: " + this.result +
-                ", expResult: " + this.result +
-                ", timeLimit: " + this.timeLimit +
-                ", nrParticipants: " + this.nrParticipants +
-                ", status: " + this.status;
+        return "queryID: " + this.id +
+                ",\n settings: " + this.settings.toString() +
+                ",\n result: " + this.result.toString() +
+                ",\n state: " + this.state.toString();
+    }
+
+    public enum DataQueryState {
+        WAITING, DONE, CLOSED;
+
+        @Override
+        public String toString() {
+            if (this == DataQueryState.WAITING) return "Waiting";
+            if (this == DataQueryState.DONE) return "Done";
+            else return "Closed";
+        }
     }
 }

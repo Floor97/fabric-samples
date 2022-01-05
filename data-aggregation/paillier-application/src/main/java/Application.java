@@ -83,7 +83,8 @@ public class Application {
                     switch(scan.next()) {
                         case "exists": Application.exists(contract); break;
                         case "start": Application.start(contract); break;
-                        case "add": Application.add(contract); break;
+                        case "addop": Application.addop(contract); break;
+                        case "adddata": Application.adddata(contract); break;
                         case "close": Application.close(contract); break;
                         case "retrieve": Application.retrieve(contract); break;
                         case "remove": Application.remove(contract); break;
@@ -111,20 +112,30 @@ public class Application {
     private static void start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         String id = scanNextLine("Transaction Start selected\nID: ");
         String mod = scanNextLine("Modulus: ");
-        String data = scanNextLine("Data: ");
-        String exp = scanNextLine("Exponent: ");
+        String postQuantumPk = scanNextLine("Post-Quantum PK: ");
+        String nrOp = scanNextLine("Number of Operators: ");
 
-        byte[] responseStart = contract.submitTransaction("StartAggregation", id, mod, data, exp);
+        byte[] responseStart = contract.submitTransaction("StartAggregation", id, mod, postQuantumPk, nrOp);
         AggregationProcess aggregationProcessStart = AggregationProcess.deserialize(new String(responseStart, StandardCharsets.UTF_8));
         System.out.println("Response: " + aggregationProcessStart.toString());
     }
 
-    private static void add(Contract contract) throws ContractException, InterruptedException, TimeoutException {
+    private static void addop(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         String id = scanNextLine("Transaction Add selected\nID: ");
-        String data = scanNextLine("Data: ");
-        String exp = scanNextLine("Exponent: ");
+        String postQuantumPk = scanNextLine("Post-Quantum PK: ");
 
-        byte[] responseAdd = contract.submitTransaction("AddData", id, data, exp);
+        byte[] responseAdd = contract.submitTransaction("AddData", id, postQuantumPk);
+        AggregationProcess aggregationProcessAdd = AggregationProcess.deserialize(new String(responseAdd, StandardCharsets.UTF_8));
+        System.out.println("Response: " + aggregationProcessAdd.toString());
+    }
+
+    private static void adddata(Contract contract) throws ContractException, InterruptedException, TimeoutException {
+        String id = scanNextLine("Transaction Add selected\nID: ");
+        String ciphertext = scanNextLine("Ciphertext: ");
+        String exponent = scanNextLine("Exponent: ");
+        String nonces = scanNextLine("Nonces: ");
+
+        byte[] responseAdd = contract.submitTransaction("AddData", id, ciphertext, exponent, nonces);
         AggregationProcess aggregationProcessAdd = AggregationProcess.deserialize(new String(responseAdd, StandardCharsets.UTF_8));
         System.out.println("Response: " + aggregationProcessAdd.toString());
     }

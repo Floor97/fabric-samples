@@ -103,10 +103,11 @@ public class Application {
     private static void start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         String id = scanNextLine("Transaction Start selected\nID: ");
         String mod = scanNextLine("Modulus: ");
-        String time = scanNextLine("Time Limit (in seconds): ");
-        String part = scanNextLine("Number of Participants: ");
+        String postQuantumPk = scanNextLine("postQuantumPk: ");
+        String operators = scanNextLine("Number of Operators: ");
+        String time = scanNextLine("End Time: ");
 
-        byte[] responseStart = contract.submitTransaction("StartDataQuery", id, mod, "", "", time, part);
+        byte[] responseStart = contract.submitTransaction("StartDataQuery", id, mod, postQuantumPk, operators, time);
         DataQuery dataQuery = DataQuery.deserialize(new String(responseStart, StandardCharsets.UTF_8));
         System.out.println("Response: " + dataQuery.toString());
     }
@@ -115,9 +116,10 @@ public class Application {
         String id = scanNextLine("Transaction Add selected\nID: ");
         String res = scanNextLine("Result: ");
         String exp = scanNextLine("Exponent: ");
+        String nonce = scanNextLine("Nonce: ");
         String part = scanNextLine("Number of Participants: ");
 
-        byte[] responseAdd = contract.submitTransaction("AddResult", id, res, exp, part);
+        byte[] responseAdd = contract.submitTransaction("AddResult", id, res, exp, nonce, part);
         DataQuery dataQuery = DataQuery.deserialize(new String(responseAdd, StandardCharsets.UTF_8));
         System.out.println("Response: " + dataQuery.toString());
     }
