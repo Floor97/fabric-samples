@@ -1,3 +1,6 @@
+import aggregationprocess.AggregationProcess;
+import aggregationprocess.AggregationProcessData;
+import aggregationprocess.AggregationProcessKeys;
 import com.n1analytics.paillier.EncryptedNumber;
 import com.n1analytics.paillier.PaillierContext;
 import com.n1analytics.paillier.PaillierPublicKey;
@@ -9,6 +12,7 @@ import org.hyperledger.fabric.contract.annotation.Info;
 import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
+import shared.Pair;
 
 import java.lang.annotation.Annotation;
 import java.math.BigInteger;
