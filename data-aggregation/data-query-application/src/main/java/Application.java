@@ -108,7 +108,7 @@ public class Application {
         String time = scanNextLine("End Time: ");
 
         byte[] responseStart = contract.submitTransaction("StartDataQuery", id, mod, postQuantumPk, operators, time);
-        DataQuery dataQuery = DataQuery.deserialize(new String(responseStart, StandardCharsets.UTF_8));
+        DataQuery dataQuery = DataQuery.deserialize(responseStart);
         System.out.println("Response: " + dataQuery.toString());
     }
 
@@ -120,7 +120,7 @@ public class Application {
         String part = scanNextLine("Number of Participants: ");
 
         byte[] responseAdd = contract.submitTransaction("AddResult", id, res, exp, nonce, part);
-        DataQuery dataQuery = DataQuery.deserialize(new String(responseAdd, StandardCharsets.UTF_8));
+        DataQuery dataQuery = DataQuery.deserialize(responseAdd);
         System.out.println("Response: " + dataQuery.toString());
     }
 
@@ -135,7 +135,7 @@ public class Application {
         String id = scanNextLine("Transaction Retrieve selected\nID: ");
 
         byte[] responseRetrieve = contract.submitTransaction("RetrieveDataQuery", id);
-        DataQuery dataQuery = DataQuery.deserialize(new String(responseRetrieve, StandardCharsets.UTF_8));
+        DataQuery dataQuery = DataQuery.deserialize(responseRetrieve);
         System.out.println("Response: " + dataQuery.toString());
     }
 

@@ -1,5 +1,7 @@
 package dataquery;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 import org.json.JSONObject;
@@ -7,6 +9,8 @@ import shared.Pair;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+@JsonPropertyOrder({"id", "settings", "result", "state"})
+@JsonIgnoreProperties({"waiting", "done", "closed"})
 @DataType()
 public class DataQuery {
 
