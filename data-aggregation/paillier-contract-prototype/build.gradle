@@ -23,8 +23,6 @@ dependencies {
     implementation 'com.squareup.jnagmp:jnagmp:2.0.0'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.10.6'
     compileOnly group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.+'
-    compileOnly group: 'org.json', name: 'json', version: '20180813'
-    implementation 'com.owlike:genson:1.5'
     implementation project(':data-aggregation-shared')
 }
 

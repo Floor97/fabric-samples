@@ -11,8 +11,8 @@ repositories {
 
 dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.10.6'
-    compileOnly group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.+'
-    compileOnly group: 'org.json', name: 'json', version: '20180813'
+    implementation group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.+'
+    implementation 'org.json:json:20080701'
 }
 
 test {

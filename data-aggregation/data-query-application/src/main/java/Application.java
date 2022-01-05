@@ -108,7 +108,7 @@ public class Application {
         String operators = scanNextLine("Number of Operators: ");
         String time = scanNextLine("End Time: ");
 
-        byte[] responseStart = contract.submitTransaction("StartDataQuery", id, mod, postQuantumPk, operators, time);
+        byte[] responseStart = contract.submitTransaction("StartQuery", id, mod, postQuantumPk, operators, time);
         DataQuery dataQuery = DataQuery.deserialize(responseStart);
         System.out.println("Response: " + dataQuery);
     }

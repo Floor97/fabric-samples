@@ -64,6 +64,13 @@ public class AggregationProcessData {
 
     @Override
     public String toString() {
+        if(this.cipherData == null)
+            return "    ciphertext of data: null,\n     " +
+                    "exponent of data: null,\n    " +
+                    "number of participants: " + this.nrParticipants +
+                    ",\n    ciphertext of nonces: " + this.cipherNonces.stream().map(Arrays::toString).collect(Collectors.joining());
+
+
         return "    ciphertext of data: " + this.cipherData.getP1().intValue() +
                 ",\n    exponent of data: " + this.cipherData.getP2() +
                 ",\n    number of participants: " + this.nrParticipants +

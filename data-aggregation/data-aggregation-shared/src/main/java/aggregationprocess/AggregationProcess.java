@@ -1,6 +1,5 @@
 package aggregationprocess;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 import org.json.JSONObject;
@@ -14,7 +13,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 @DataType()
 public class AggregationProcess {
-    private static final ObjectMapper om = new ObjectMapper();
 
     @Property()
     private String id;
@@ -145,9 +143,9 @@ public class AggregationProcess {
     @Override
     public String toString() {
         return "id: " + this.id +
-                "keystore: " + this.keystore.toString() +
-                "data: " + this.data.toString() +
-                "state: " + this.state.toString();
+                "keystore: " + this.keystore +
+                "data: " + this.data +
+                "state: " + this.state;
     }
 
 

@@ -157,9 +157,9 @@ public class DataQuery {
     @Override
     public String toString() {
         return "queryID: " + this.id +
-                ",\n settings: " + this.settings.toString() +
-                ",\n result: " + this.result.toString() +
-                ",\n state: " + this.state.toString();
+                ",\n settings: " + this.settings +
+                ",\n result: " + this.result +
+                ",\n state: " + this.state;
     }
 
     public enum DataQueryState {

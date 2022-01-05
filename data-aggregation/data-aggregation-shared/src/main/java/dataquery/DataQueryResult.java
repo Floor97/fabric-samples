@@ -84,7 +84,7 @@ public class DataQueryResult {
 
     @Override
     public String toString() {
-        return "    ciphertext data: " + this.cipherData.toString() +
+        return "    ciphertext data: " + this.cipherData +
                 ",\n    ciphertext nonces: " + Arrays.toString(this.cipherNonces) +
                 ",\n    number of participants: " + this.nrParticipants +
                 ",\n    inconsistency flag: " + this.incFlag;
