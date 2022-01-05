@@ -12,6 +12,10 @@ repositories {
 dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.10.6'
+    compileOnly group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.+'
+    compileOnly group: 'org.json', name: 'json', version: '20180813'
+    implementation 'com.owlike:genson:1.5'
 }
 
 test {

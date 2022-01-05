@@ -5,9 +5,7 @@ import org.hyperledger.fabric.contract.annotation.Default;
 import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
-
-import javax.xml.crypto.Data;
-import java.util.Base64;
+import shared.Pair;
 
 @Default
 @Contract(name="query.eventcontract")

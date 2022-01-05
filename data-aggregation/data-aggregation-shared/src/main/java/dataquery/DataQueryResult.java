@@ -1,3 +1,5 @@
+package dataquery;
+
 import shared.Pair;
 
 import java.util.Arrays;
