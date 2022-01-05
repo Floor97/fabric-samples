@@ -21,8 +21,5 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.10.6'
     compileOnly group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.+'
     compileOnly group: 'org.json', name: 'json', version: '20180813'
+    implementation project(':data-aggregation-shared')
 }
-
-//test {
-//    useJUnitPlatform()
-//}

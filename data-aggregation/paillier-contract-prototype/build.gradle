@@ -25,7 +25,7 @@ dependencies {
     compileOnly group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.+'
     compileOnly group: 'org.json', name: 'json', version: '20180813'
     implementation 'com.owlike:genson:1.5'
-//    implementation project(':data-aggregation-shared')
+    implementation project(':data-aggregation-shared')
 }
 
 application {

@@ -1,3 +1,4 @@
+import aggregationprocess.AggregationProcess;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Slf4JLoggerFactory;
 import org.apache.log4j.Level;
@@ -116,8 +117,8 @@ public class Application {
         String nrOp = scanNextLine("Number of Operators: ");
 
         byte[] responseStart = contract.submitTransaction("StartAggregation", id, mod, postQuantumPk, nrOp);
-        AggregationProcess aggregationProcessStart = AggregationProcess.deserialize(new String(responseStart, StandardCharsets.UTF_8));
-        System.out.println("Response: " + aggregationProcessStart.toString());
+        AggregationProcess aggregationProcessStart = AggregationProcess.deserialize(responseStart);
+        System.out.println("Response: " + aggregationProcessStart);
     }
 
     private static void addop(Contract contract) throws ContractException, InterruptedException, TimeoutException {
@@ -125,8 +126,8 @@ public class Application {
         String postQuantumPk = scanNextLine("Post-Quantum PK: ");
 
         byte[] responseAdd = contract.submitTransaction("AddData", id, postQuantumPk);
-        AggregationProcess aggregationProcessAdd = AggregationProcess.deserialize(new String(responseAdd, StandardCharsets.UTF_8));
-        System.out.println("Response: " + aggregationProcessAdd.toString());
+        AggregationProcess aggregationProcessAdd = AggregationProcess.deserialize(responseAdd);
+        System.out.println("Response: " + aggregationProcessAdd);
     }
 
     private static void adddata(Contract contract) throws ContractException, InterruptedException, TimeoutException {
@@ -136,8 +137,8 @@ public class Application {
         String nonces = scanNextLine("Nonces: ");
 
         byte[] responseAdd = contract.submitTransaction("AddData", id, ciphertext, exponent, nonces);
-        AggregationProcess aggregationProcessAdd = AggregationProcess.deserialize(new String(responseAdd, StandardCharsets.UTF_8));
-        System.out.println("Response: " + aggregationProcessAdd.toString());
+        AggregationProcess aggregationProcessAdd = AggregationProcess.deserialize(responseAdd);
+        System.out.println("Response: " + aggregationProcessAdd);
     }
 
     private static void close(Contract contract) throws ContractException, InterruptedException, TimeoutException {
@@ -151,8 +152,8 @@ public class Application {
         String id = scanNextLine("Transaction Retrieve selected\nID: ");
 
         byte[] responseRetrieve = contract.submitTransaction("RetrieveAggregationProcess", id);
-        AggregationProcess aggregationProcessRetrieve = AggregationProcess.deserialize(new String(responseRetrieve, StandardCharsets.UTF_8));
-        System.out.println("Response: " + aggregationProcessRetrieve.toString());
+        AggregationProcess aggregationProcessRetrieve = AggregationProcess.deserialize(responseRetrieve);
+        System.out.println("Response: " + aggregationProcessRetrieve);
     }
 
     private static void remove(Contract contract) throws ContractException, InterruptedException, TimeoutException {

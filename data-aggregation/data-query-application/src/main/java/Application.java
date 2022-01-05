@@ -1,3 +1,4 @@
+import dataquery.DataQuery;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Slf4JLoggerFactory;
 import org.apache.log4j.Level;
@@ -109,7 +110,7 @@ public class Application {
 
         byte[] responseStart = contract.submitTransaction("StartDataQuery", id, mod, postQuantumPk, operators, time);
         DataQuery dataQuery = DataQuery.deserialize(responseStart);
-        System.out.println("Response: " + dataQuery.toString());
+        System.out.println("Response: " + dataQuery);
     }
 
     private static void add(Contract contract) throws ContractException, InterruptedException, TimeoutException {
@@ -121,7 +122,7 @@ public class Application {
 
         byte[] responseAdd = contract.submitTransaction("AddResult", id, res, exp, nonce, part);
         DataQuery dataQuery = DataQuery.deserialize(responseAdd);
-        System.out.println("Response: " + dataQuery.toString());
+        System.out.println("Response: " + dataQuery);
     }
 
     private static void close(Contract contract) throws ContractException, InterruptedException, TimeoutException {
@@ -136,7 +137,7 @@ public class Application {
 
         byte[] responseRetrieve = contract.submitTransaction("RetrieveDataQuery", id);
         DataQuery dataQuery = DataQuery.deserialize(responseRetrieve);
-        System.out.println("Response: " + dataQuery.toString());
+        System.out.println("Response: " + dataQuery);
     }
 
     private static void remove(Contract contract) throws ContractException, InterruptedException, TimeoutException {
