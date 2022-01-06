@@ -1,4 +1,5 @@
 import aggregationprocess.AggregationProcess;
+import dataquery.DataQuery;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Slf4JLoggerFactory;
 import org.apache.log4j.Level;
@@ -17,11 +18,15 @@ import java.security.cert.CertificateException;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 import java.io.Reader;
+import java.util.function.Consumer;
 
 import org.hyperledger.fabric.gateway.Identities;
 import org.hyperledger.fabric.gateway.Wallet;
 import org.hyperledger.fabric.gateway.Wallets;
 import org.hyperledger.fabric.gateway.Identity;
+import org.hyperledger.fabric.sdk.BlockEvent;
+import org.hyperledger.fabric.sdk.ChaincodeEvent;
+import org.hyperledger.fabric.sdk.ChaincodeEventListener;
 
 public class Application {
 
@@ -78,6 +83,13 @@ public class Application {
                 Network network = gateway.getNetwork(CHANNEL_NAME);
 
                 Contract contract = network.getContract(CC_NAME, CONTRACT_NAME);
+                Consumer<ContractEvent> consumer = contractEvent -> {
+                    System.out.println("Hello Event!");
+                    System.out.println(contractEvent.getTransactionEvent());
+                    System.out.println(contractEvent.getName());
+                    System.out.println(DataQuery.deserialize(contractEvent.getPayload().get()));
+                };
+                contract.addContractListener(consumer);
 
                 while(true) {
                     System.out.println("Please select a transaction: exists, start, add, close, retrieve or remove");

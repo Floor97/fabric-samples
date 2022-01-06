@@ -22,4 +22,5 @@ dependencies {
     compileOnly group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.+'
     compileOnly group: 'org.json', name: 'json', version: '20180813'
     implementation project(':data-aggregation-shared')
+//    implementation files('../libs/core-1.70.jar')
 }

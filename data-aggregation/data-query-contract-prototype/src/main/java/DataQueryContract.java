@@ -1,3 +1,6 @@
+import dataquery.DataQuery;
+import dataquery.DataQueryResult;
+import dataquery.DataQuerySettings;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
@@ -41,6 +44,7 @@ public class DataQueryContract implements ContractInterface {
 
         byte[] serDataQuery = DataQuery.serialize(dataQuery);
         stub.putState(id, serDataQuery);
+        stub.setEvent("newQuery", serDataQuery);
         return new String(serDataQuery);
     }
 
