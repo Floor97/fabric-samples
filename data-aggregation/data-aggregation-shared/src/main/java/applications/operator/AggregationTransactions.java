@@ -2,6 +2,7 @@ package applications.operator;
 
 import datatypes.aggregationprocess.AggregationProcess;
 import datatypes.dataquery.DataQuery;
+import datatypes.values.EncryptedNonces;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 
@@ -51,14 +52,14 @@ public class AggregationTransactions {
         );
     }
 
-    public static void adddata(Contract contract, String id, String cipherData, int exponent, byte[][] nonces) throws ContractException, InterruptedException, TimeoutException {
+    public static void adddata(Contract contract, String id, String cipherData, int exponent, EncryptedNonces nonces) throws ContractException, InterruptedException, TimeoutException {
         printResponse(
                 contract.submitTransaction(
                         "AddData",
                         id,
                         cipherData,
                         String.valueOf(exponent),
-                        Base64.getEncoder().encodeToString(nonces)
+                        EncryptedNonces.serialize(nonces)
                 )
         );
     }
@@ -70,7 +71,7 @@ public class AggregationTransactions {
                         id
                 )
         );
-        QueryTransactions.add(contractQuery, id, aggregationProcess.getData());
+        //QueryTransactions.add(contractQuery, id, aggregationProcess.getData());
     }
 
     public static void retrieve(Contract contract, String id) throws ContractException, InterruptedException, TimeoutException {

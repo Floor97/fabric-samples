@@ -14,15 +14,15 @@ public interface KeyStore {
 
 
 
-    public static String paPubKeyToString(PaillierPublicKey pk) {
+    static String paPubKeyToString(PaillierPublicKey pk) {
         return pk.getModulus().toString();
     }
 
-    public static PaillierPublicKey paStringToPubKey(String str) {
+    static PaillierPublicKey paStringToPubKey(String str) {
         return new PaillierPublicKey(new BigInteger(str));
     }
 
-    public static String pqPubKeyToString(NTRUEncryptionPublicKeyParameters pk) {
+    static String pqPubKeyToString(NTRUEncryptionPublicKeyParameters pk) {
         ByteArrayOutputStream pubOut = new ByteArrayOutputStream();
         ByteArrayOutputStream parOut = new ByteArrayOutputStream();
         try {
@@ -36,7 +36,7 @@ public interface KeyStore {
         return pubKey + ":" + stParams;
     }
 
-    public static NTRUEncryptionPublicKeyParameters pqStringToPubKey(String str) {
+    static NTRUEncryptionPublicKeyParameters pqStringToPubKey(String str) {
         String[] parts = str.split(":", 2);
         byte[] pubKey = Base64.getDecoder().decode(parts[0]);
         byte[] stParams = Base64.getDecoder().decode(parts[1]);

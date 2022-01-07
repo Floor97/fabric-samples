@@ -21,4 +21,9 @@ public class EncryptedNonce {
     public byte[] getNonce() {
         return nonce;
     }
+
+    @Override
+    public String toString() {
+        return serialise(this);
+    }
 }

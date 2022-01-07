@@ -6,17 +6,37 @@ import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.json.JSONObject;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Base64;
 
 public class EncryptedNonces {
 
     private final EncryptedNonce[] nonces;
+    private int pointer;
 
     public EncryptedNonces(EncryptedNonce[] nonces) {
         this.nonces = nonces;
+        setPointer();
     }
 
-    public static String serialise(EncryptedNonces encryptedNonces) {
+    public void addNonce(EncryptedNonce nonce) {
+        if(isFull()) throw new RuntimeException("Nonces are full");
+        nonces[pointer++] = nonce;
+    }
+
+    private void setPointer() {
+        this.pointer = 0;
+        for(EncryptedNonce nonce : nonces) {
+            if(nonce == null) break;
+            this.pointer++;
+        }
+    }
+
+    public boolean isFull() {
+        return this.pointer == nonces.length;
+    }
+
+    public static String serialize(EncryptedNonces encryptedNonces) {
         String[] strEncryptedNonces = new String[encryptedNonces.nonces.length];
         for (int i = 0; i < encryptedNonces.nonces.length; i++) {
             strEncryptedNonces[i] = EncryptedNonce.serialise(encryptedNonces.nonces[i]);
@@ -49,5 +69,10 @@ public class EncryptedNonces {
 
     public EncryptedNonce[] getNonces() {
         return nonces;
+    }
+
+    @Override
+    public String toString() {
+        return Arrays.toString(nonces);
     }
 }

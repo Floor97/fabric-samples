@@ -1,6 +1,5 @@
 import applications.IdFactory;
 import applications.operator.AggregationTransactions;
-import applications.operator.DataAggregationTransactions;
 import applications.operator.generators.DataGenerator;
 import datatypes.aggregationprocess.AggregationProcess;
 import datatypes.dataquery.DataQuery;
@@ -28,10 +27,10 @@ public class ApplicationController {
 
         while (true) {
             System.out.println("Please select a transaction: exists, start, add, close, retrieve or remove");
-            try {
+            //try {
                 switch (scan.next()) {
                     case "exists":
-                        AggregationTransactions.exists(contractAgg);
+                        //AggregationTransactions.exists(contractAgg);
                         break;
                     //case "start": DataAggregationTransactions.start(contractAgg); break;
                     //case "addop": DataAggregationTransactions.addop(contractAgg); break;
@@ -46,9 +45,9 @@ public class ApplicationController {
                         System.out.println("Unrecognised transaction");
                         break;
                 }
-            } catch (ContractException | InterruptedException | TimeoutException e) {
-                e.printStackTrace();
-            }
+            //} catch (ContractException | InterruptedException | TimeoutException e) {
+            //    e.printStackTrace();
+            //}
 
         }
     }

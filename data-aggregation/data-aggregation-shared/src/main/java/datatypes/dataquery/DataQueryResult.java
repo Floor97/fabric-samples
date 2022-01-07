@@ -1,37 +1,31 @@
 package datatypes.dataquery;
 
-import shared.Pair;
-
-import java.util.Arrays;
+import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonce;
+import datatypes.values.EncryptedNonces;
 
 public class DataQueryResult {
 
-    private Pair<String, String> cipherData;
-    private String[] cipherNonces;
+    private EncryptedData cipherData;
+    private EncryptedNonces cipherNonces;
     private int nrParticipants;
-    private int pointer = 0;
     private boolean incFlag = false;
 
-    public Pair<String, String> getCipherData() {
+    public EncryptedData getCipherData() {
         return cipherData;
     }
 
-    public DataQueryResult setCipherData(Pair<String, String> cipherData) {
+    public DataQueryResult setCipherData(EncryptedData cipherData) {
         this.cipherData = cipherData;
         return this;
     }
 
-    public String[] getCipherNonces() {
+    public EncryptedNonces getCipherNonces() {
         return cipherNonces;
     }
 
-    private DataQueryResult setCipherNonces(String[] cipherNonces) {
+    private DataQueryResult setCipherNonces(EncryptedNonces cipherNonces) {
         this.cipherNonces = cipherNonces;
-        this.pointer = 0;
-        for(String nonce : cipherNonces) {
-            if(nonce == null) break;
-            pointer++;
-        }
         return this;
     }
 
@@ -40,14 +34,9 @@ public class DataQueryResult {
      * @param newCipherNonce the new nonce to be added.
      * @return returns this.
      */
-    public DataQueryResult addToCipherNonces(String newCipherNonce) {
-        if(isCipherNoncesFull()) throw new RuntimeException("The nonces array is already full");
-        cipherNonces[pointer++] = newCipherNonce;
+    public DataQueryResult addToCipherNonces(EncryptedNonce newCipherNonce) {
+        this.cipherNonces.addNonce(newCipherNonce);
         return this;
-    }
-
-    public boolean isCipherNoncesFull() {
-        return this.pointer == cipherNonces.length;
     }
 
     public int getNrParticipants() {
@@ -75,7 +64,7 @@ public class DataQueryResult {
      * @param nrParticipants the number of participants that participated in the process.
      * @return a new DataQueryResult object.
      */
-    public static DataQueryResult createInstance(Pair<String, String> cipherData, String[] nonces, int nrParticipants) {
+    public static DataQueryResult createInstance(EncryptedData cipherData, EncryptedNonces nonces, int nrParticipants) {
         return new DataQueryResult()
                 .setCipherData(cipherData)
                 .setCipherNonces(nonces)
@@ -85,7 +74,7 @@ public class DataQueryResult {
     @Override
     public String toString() {
         return "    ciphertext data: " + this.cipherData +
-                ",\n    ciphertext nonces: " + Arrays.toString(this.cipherNonces) +
+                ",\n    ciphertext nonces: " + this.cipherNonces +
                 ",\n    number of participants: " + this.nrParticipants +
                 ",\n    inconsistency flag: " + this.incFlag;
     }

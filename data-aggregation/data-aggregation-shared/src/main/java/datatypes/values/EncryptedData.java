@@ -1,31 +1,34 @@
 package datatypes.values;
 
-import java.math.BigInteger;
-
 public class EncryptedData {
 
-    private final BigInteger data;
-    private final int exponent;
+    private final String data;
+    private final String exponent;
 
-    public EncryptedData(BigInteger data, int exponent) {
+    public EncryptedData(String data, String exponent) {
         this.data = data;
         this.exponent = exponent;
     }
 
-    public static String serialise(EncryptedData data) {
+    public static String serialize(EncryptedData data) {
         return data.data + ":" + data.exponent;
     }
 
     public static EncryptedData deserialise(String data) {
         String[] parts = data.split(":", 2);
-        return new EncryptedData(new BigInteger(parts[0]), Integer.parseInt(parts[1]));
+        return new EncryptedData(parts[0], parts[1]);
     }
 
-    public BigInteger getData() {
+    public String getData() {
         return data;
     }
 
-    public int getExponent() {
+    public String getExponent() {
         return exponent;
+    }
+
+    @Override
+    public String toString() {
+        return "data: " + data + ", exponent: " + exponent;
     }
 }

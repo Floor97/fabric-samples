@@ -1,16 +1,13 @@
 package datatypes.dataquery;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonces;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 import org.json.JSONObject;
-import shared.Pair;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-@JsonPropertyOrder({"id", "settings", "result", "state"})
-@JsonIgnoreProperties({"waiting", "done", "closed"})
 @DataType()
 public class DataQuery {
 
@@ -92,14 +89,13 @@ public class DataQuery {
         DataQuery dataQuery;
         if (!json.has("result")) {
             String cipherData = json.getString("cipherData");
-            String exponent = json.getString("exponent");
             int nrParticipants = json.getInt("nrParticipants");
-            String[] nonces = json.getJSONArray("cipherNonces").toList().toArray(new String[0]);
+            String nonces = json.getString("cipherNonces");
             boolean incFlag = json.getBoolean("incFlag");
 
             dataQuery = createInstance(id,
                     DataQuerySettings.createInstance(paillierModulus, postQuantumPk, nrOperators, endTime),
-                    DataQueryResult.createInstance(new Pair<>(cipherData, exponent), nonces, nrParticipants)
+                    DataQueryResult.createInstance(EncryptedData.deserialise(cipherData), EncryptedNonces.deserialise(nonces), nrParticipants)
             );
             if(incFlag) dataQuery.getResult().setIncFlag();
         } else {
@@ -130,9 +126,8 @@ public class DataQuery {
                 .put("endTime", dataQuery.getSettings().getEndTime())
                 .put("state", dataQuery.state);
         if (res != null)
-            json.put("cipherData", res.getCipherData().getP1())
-                    .put("exponent", res.getCipherData().getP2())
-                    .put("cipherNonces", dataQuery.getResult().getCipherNonces())
+            json.put("cipherData", EncryptedData.serialize(res.getCipherData()))
+                    .put("cipherNonces", EncryptedNonces.serialize(dataQuery.getResult().getCipherNonces()))
                     .put("nrParticipants", dataQuery.getResult().getNrParticipants())
                     .put("incFlag", dataQuery.getResult().isIncFlag());
         else json.put("result", "null");

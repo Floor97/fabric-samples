@@ -1,6 +1,9 @@
 import datatypes.dataquery.DataQuery;
 import datatypes.dataquery.DataQueryResult;
 import datatypes.dataquery.DataQuerySettings;
+import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonce;
+import datatypes.values.EncryptedNonces;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
@@ -70,18 +73,19 @@ public class DataQueryContract implements ContractInterface {
         DataQueryResult res = dataQuery.getResult();
         if(res == null) {
             res = dataQuery.setResult(DataQueryResult.createInstance(
-                    new Pair<>(cipherData, exponent),
-                    new String[dataQuery.getSettings().getNrOperators()],
+                    new EncryptedData(cipherData, exponent),
+                    new EncryptedNonces(new EncryptedNonce[dataQuery.getSettings().getNrOperators()]),
                     nrParticipants)).getResult();
-        } else if ((!res.getCipherData().getP1().equals(cipherData))
-                || (!res.getCipherData().getP2().equals(exponent))
+        } else if ((!res.getCipherData().getData().equals(cipherData))
+                || (!res.getCipherData().getExponent().equals(exponent))
                 || res.getNrParticipants() != nrParticipants)
             res.setIncFlag();
-        res.addToCipherNonces(cipherNonce);
-        if(res.isCipherNoncesFull()) dataQuery.setDone();
+        res.addToCipherNonces(EncryptedNonce.deserialise(cipherNonce));
+        if(res.getCipherNonces().isFull()) dataQuery.setDone();
 
         byte[] serDataQuery = DataQuery.serialize(dataQuery);
         stub.putState(id, serDataQuery);
+        stub.setEvent("DoneQuery", serDataQuery);
         return new String(serDataQuery);
     }
 
