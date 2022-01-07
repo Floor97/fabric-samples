@@ -26,14 +26,4 @@ public class DataGenerator {
         }
         return new Pair<>(PaillierEncryption.encrypt(data, modulus), nonces);
     }
-
-    public static byte[] condenseNonces(AsymmetricCipherKeyPair kp, String[] encNonces, String postQuantumPk) throws InvalidCipherTextException {
-        BigInteger summedNonce = new BigInteger("0");
-        for(String encNonce: encNonces) {
-            byte[] encNonce2 = encNonce.getBytes();
-            summedNonce = summedNonce.add(new BigInteger(NTRUEncryption.decrypt(encNonce2, kp)));
-        }
-
-        return NTRUEncryption.encrypt(summedNonce.toByteArray(), postQuantumPk);
-    }
 }
