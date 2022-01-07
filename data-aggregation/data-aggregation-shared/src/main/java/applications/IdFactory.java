@@ -1,3 +1,5 @@
+package applications;
+
 public class IdFactory {
 
     private static IdFactory idFactory = null;

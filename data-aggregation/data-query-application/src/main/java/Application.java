@@ -1,4 +1,3 @@
-import dataquery.DataQuery;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Slf4JLoggerFactory;
 import org.apache.log4j.Level;
@@ -15,7 +14,6 @@ import java.security.cert.X509Certificate;
 import java.security.InvalidKeyException;
 import java.security.cert.CertificateException;
 import java.io.Reader;
-import java.util.function.Consumer;
 
 import org.hyperledger.fabric.gateway.Identities;
 import org.hyperledger.fabric.gateway.Wallet;

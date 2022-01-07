@@ -1,6 +1,6 @@
-import dataquery.DataQuery;
-import dataquery.DataQueryResult;
-import dataquery.DataQuerySettings;
+import datatypes.dataquery.DataQuery;
+import datatypes.dataquery.DataQueryResult;
+import datatypes.dataquery.DataQuerySettings;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
@@ -91,7 +91,7 @@ public class DataQueryContract implements ContractInterface {
      * @param id the unique id of the data query.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void Close(Context ctx, String id) {
+    public String Close(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
 
         DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
@@ -99,7 +99,9 @@ public class DataQueryContract implements ContractInterface {
             throw new ChaincodeException(String.format("Data query, %s, is already closed", id));
 
         dataQuery.setClosed();
-        stub.putState(id, DataQuery.serialize(dataQuery));
+        byte[] serDataQuery = DataQuery.serialize(dataQuery);
+        stub.putState(id, serDataQuery);
+        return new String(serDataQuery);
     }
 
     /**
@@ -129,9 +131,11 @@ public class DataQueryContract implements ContractInterface {
      * @param id the unique id of the data query.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public void RemoveDataQuery(Context ctx, String id) {
+    public String RemoveDataQuery(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
+        byte[] serDataQuery = stub.getState(id);
         stub.delState(id);
+        return new String(serDataQuery);
     }
 
     /**

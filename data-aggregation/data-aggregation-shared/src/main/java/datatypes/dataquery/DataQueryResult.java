@@ -1,4 +1,4 @@
-package dataquery;
+package datatypes.dataquery;
 
 import shared.Pair;
 

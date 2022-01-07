@@ -1,4 +1,4 @@
-package aggregationprocess;
+package datatypes.aggregationprocess;
 
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;

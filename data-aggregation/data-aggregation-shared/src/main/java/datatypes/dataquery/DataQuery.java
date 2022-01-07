@@ -1,4 +1,4 @@
-package dataquery;
+package datatypes.dataquery;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;

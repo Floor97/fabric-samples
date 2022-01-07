@@ -1,4 +1,4 @@
-import applications.DataQueryKeyStore;
+import applications.operator.OperatorKeyStore;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -7,23 +7,27 @@ public class ApplicationModel {
 
     private static ApplicationModel applicationModel = null;
 
-    private final HashMap<String, DataQueryKeyStore> queryKeys;
+    private final HashMap<String, OperatorKeyStore> queryKeys;
     private final HashSet<String> ids;
 
-    public static final String CC_NAME = "query";
-    public static final String CONTRACT_NAME = "query.eventcontract";
-    public static final String CHANNEL_NAME = "mychannel";
+    public static final String CC_NAME_AGG = "aggregationprocess";
+    public static final String CONTRACT_NAME_AGG = "aggregationprocess.pailliercontract";
+    public static final String CHANNEL_NAME_AGG = "mychannel";
+
+    public static final String CC_NAME_QUERY = "query";
+    public static final String CONTRACT_NAME_QUERY = "query.eventcontract";
+    public static final String CHANNEL_NAME_QUERY = "mychannel";
 
     private ApplicationModel() {
         queryKeys = new HashMap<>();
         ids = new HashSet<>();
     }
 
-    public DataQueryKeyStore getKey(String id) {
+    public OperatorKeyStore getKey(String id) {
         return queryKeys.get(id);
     }
 
-    public void addKey(String id, DataQueryKeyStore keys) {
+    public void addKey(String id, OperatorKeyStore keys) {
         queryKeys.put(id, keys);
     }
 
@@ -40,7 +44,7 @@ public class ApplicationModel {
         return ids.remove(id);
     }
 
-    public void addProcess(String id, DataQueryKeyStore keys) {
+    public void addProcess(String id, OperatorKeyStore keys) {
         this.addKey(id, keys);
         ids.add(id);
     }

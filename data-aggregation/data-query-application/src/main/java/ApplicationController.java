@@ -1,3 +1,5 @@
+import applications.asker.QueryTransactions;
+import applications.IdFactory;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractEvent;
 import org.hyperledger.fabric.gateway.ContractException;
@@ -19,12 +21,12 @@ public class ApplicationController {
             System.out.println("Please select a transaction: exists, start, add, close, retrieve or remove");
             try {
                 switch (scan.next()) {
-                    case "exists": DataQueryTransactions.exists(contract); break;
-                    case "start": DataQueryTransactions.start(contract); break;
-                    case "add": DataQueryTransactions.add(contract); break;
-                    case "close": DataQueryTransactions.close(contract); break;
-                    case "retrieve": DataQueryTransactions.retrieve(contract); break;
-                    case "remove": DataQueryTransactions.remove(contract); break;
+                    case "exists": QueryTransactions.exists(contract); break;
+                    case "start": QueryTransactions.start(contract); break;
+                    case "add": QueryTransactions.add(contract); break;
+                    case "close": QueryTransactions.close(contract); break;
+                    case "retrieve": QueryTransactions.retrieve(contract); break;
+                    case "remove": QueryTransactions.remove(contract); break;
                     case "exit": System.exit(0); break;
                     default: System.out.println("Unrecognised transaction"); break;
                 }

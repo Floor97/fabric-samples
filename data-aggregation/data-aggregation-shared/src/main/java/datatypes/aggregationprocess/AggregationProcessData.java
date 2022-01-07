@@ -1,4 +1,4 @@
-package aggregationprocess;
+package datatypes.aggregationprocess;
 
 import shared.Pair;
 

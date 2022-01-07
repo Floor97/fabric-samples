@@ -1,5 +1,11 @@
+package applications.asker;
+
+import applications.DataQueryKeyStore;
+import applications.IdFactory;
+import applications.KeyStore;
 import com.n1analytics.paillier.PaillierPublicKey;
-import dataquery.DataQuery;
+import datatypes.dataquery.DataQuery;
+import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 import shared.Pair;
@@ -8,19 +14,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
-public class DataQueryTransactions {
+public class QueryTransactions {
     private static Scanner scan = new Scanner(System.in);
 
     public static void start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
-        TempKeystore newKeys = TempKeystore.createInstance();
-        Pair<PaillierPublicKey, String> pubkeys = newKeys.getPublicKeys();
+        DataQueryKeyStore newKeys = DataQueryKeyStore.createInstance();
+        Pair<PaillierPublicKey, NTRUEncryptionPublicKeyParameters> pubkeys = newKeys.getPublicKeys();
 
         printResponse(
                 contract.submitTransaction(
                         "StartQuery",
                         IdFactory.getInstance().createId(),
-                        TempKeystore.paPubKeyToString(pubkeys.getP1()),
-                        TempKeystore.pqPubKeyToString(pubkeys.getP2()),
+                        KeyStore.paPubKeyToString(pubkeys.getP1()),
+                        KeyStore.pqPubKeyToString(pubkeys.getP2()),
                         scanNextLine("Transaction Start selected\nNumber of Operators: "),
                         scanNextLine("End Time: ")
                 )

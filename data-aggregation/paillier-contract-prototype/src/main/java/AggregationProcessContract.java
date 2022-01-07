@@ -1,9 +1,9 @@
-import aggregationprocess.AggregationProcess;
-import aggregationprocess.AggregationProcessData;
-import aggregationprocess.AggregationProcessKeys;
 import com.n1analytics.paillier.EncryptedNumber;
 import com.n1analytics.paillier.PaillierContext;
 import com.n1analytics.paillier.PaillierPublicKey;
+import datatypes.aggregationprocess.AggregationProcess;
+import datatypes.aggregationprocess.AggregationProcessData;
+import datatypes.aggregationprocess.AggregationProcessKeys;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
