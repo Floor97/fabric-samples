@@ -1,22 +1,40 @@
 package applications.operator;
 
 import applications.KeyStore;
+import org.bouncycastler.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyGenerationParameters;
+import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyPairGenerator;
+import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
+import org.bouncycastler.pqc.crypto.ntru.NTRUParameters;
 
 public class OperatorKeyStore implements KeyStore {
 
-    private String postQuantumKeys;
+    private AsymmetricCipherKeyPair postQuantumKeys;
+    private int index;
 
-    public String getPostQuantumKeys() {
+    public AsymmetricCipherKeyPair getPostQuantumKeys() {
         return this.postQuantumKeys;
     }
 
-    public String getPublicKey() {
-        return postQuantumKeys;
+    public NTRUEncryptionPublicKeyParameters getPublicKey() {
+        return (NTRUEncryptionPublicKeyParameters) postQuantumKeys.getPublic();
     }
 
-    public OperatorKeyStore setPostQuantumKeys() {
-        this.postQuantumKeys = "ABgAAAYAgAH0v//9HwAABjCA/g+g//0fwAD6DwAA9L//ABjAAAAAgP4DoP8DAAAA+t9/AAAAAAMYQP/7P4D+DwAA/R/AAAAwgP73HwAAGMAABgCAAfQfAAMYQP/7D4D+AwAA/e//AAAAgP73HwAA6P8A+g+AAfR/AADoPwAG0H8A9L///QdA/wHQ//4PYAD9HwAAAND/AQCg/wAYQP8BAID+A2AA/e//APoPAAAAoP8A6D8AAAAAAABgAAMYQP/7P4ABDGAA/QcAAAYwgP4DoP8A6H//+z8AAACg//0fAAAGAID+D2AAAOh//wcwAAAAYAADAAAA+g+A/gNgAADo/wD63/8B9B8AAAAAAAYwgP4PAAD9H8AAAND//vd/AADo/wAGAIAB9L//AABA/wEwgAEAYAAA6H//B9B/AAxgAAAYwAAGAIABAAAA/e//APo/AAD0v/8A6P8A+t9/AABgAP0fwAAGAIABDKD/AxjAAAYwAAAAAAAAAAAA+g+AAQCg//0fwAD6D4D+D2AAAOh//wcAgP4PYAD9BwAAAND/AQBgAP0fwAAAAID+938A/e//AAbQ/wEMAAAAAMAAADCA/gOg/wDoPwAA0H8AAGAAAAAAAPrf//4PoP8DGMAABgAAAPS//wDof/8HMIABDGAAAwBA//s/gAH0v/8DGMAAAAAAAABgAAAAAAAA0H8A9H8AAwDAAPo/AAAAYAAAGAAABgAAAABgAP3vPwAGMID+A6D/A+j/AAbQ/wH0fwAAGAAA+t///ve///3vf//7D4AB9H8A/R/AAAAAAAAMAAADAAAA+j+AAQCg/wPoPwAAMAAAAGAAAwAAAAbQfwAMoP/97z8AAND/AfS///3v/wD6P4ABAGAA/R9A/wEAgAEAYAAAGMAAAND/AQCg/wDo/wAGMAAA9L///e9//wHQfwAAAAAAGED/+w+AAQyg//3vf/8HAIAB9H8AAADAAPrffwD0v/8D6H//AdD//vcfAP0fwAAA0P8B9L//AxgAAAYwgAEMAAD9B0D/+w8AAAxgAP0HwAAA0P/+A2AAAABA/wEwgAEAYAADGMAA+g8AAAwAAP3v/wD6D4D+D6D//R/AAAAwgP73HwD9H0D/BwCA/g+g//0HwAAGMAAADGAAA+g/AAAAgAH0fwD97z8AADCA/vcfAP0HAAD6D4D+D6D/ABhA/wcAAAAAAAAD6D8ABgCAAfQfAADof/8HAIABDKD//QfAAPrffwAMoP/97/8AAACAAfQfAP0fwAAA0H8ADGAA/R8AAAAwAAAAAAD9HwAAANB/AACg/wMAAAAAAID+938AAOj/AADQfwD0v//9H8AABgCAAQBgAAAAQP/7P4D+DwA=:AAAC5wAACAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAANwAAAAKAAAAGwAAAA4BAAdpAAEAAAdTSEEtNTEy";
+    private OperatorKeyStore setPostQuantumKeys() {
+        NTRUEncryptionKeyGenerationParameters params = NTRUEncryptionKeyGenerationParameters.APR2011_743_FAST.clone();
+        params.polyType = NTRUParameters.TERNARY_POLYNOMIAL_TYPE_SIMPLE;
+        NTRUEncryptionKeyPairGenerator ntruGen = new NTRUEncryptionKeyPairGenerator();
+        ntruGen.init(params);
+        this.postQuantumKeys = ntruGen.generateKeyPair();
         return this;
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
     }
 
     public static OperatorKeyStore createInstance() {

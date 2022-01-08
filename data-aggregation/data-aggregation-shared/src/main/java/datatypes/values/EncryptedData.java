@@ -14,7 +14,7 @@ public class EncryptedData {
         return data.data + ":" + data.exponent;
     }
 
-    public static EncryptedData deserialise(String data) {
+    public static EncryptedData deserialize(String data) {
         String[] parts = data.split(":", 2);
         return new EncryptedData(parts[0], parts[1]);
     }

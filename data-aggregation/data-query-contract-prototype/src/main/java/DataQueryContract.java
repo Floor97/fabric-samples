@@ -47,7 +47,7 @@ public class DataQueryContract implements ContractInterface {
 
         byte[] serDataQuery = DataQuery.serialize(dataQuery);
         stub.putState(id, serDataQuery);
-        stub.setEvent("newQuery", serDataQuery);
+        stub.setEvent("StartQuery", serDataQuery);
         return new String(serDataQuery);
     }
 
@@ -64,6 +64,7 @@ public class DataQueryContract implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public String AddResult(Context ctx, String id, String cipherData, String exponent, String cipherNonce,
                             int nrParticipants) {
+        boolean first = false;
         ChaincodeStub stub = retrieveStub(ctx, id);
         DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
 
@@ -72,6 +73,7 @@ public class DataQueryContract implements ContractInterface {
 
         DataQueryResult res = dataQuery.getResult();
         if(res == null) {
+            first = true;
             res = dataQuery.setResult(DataQueryResult.createInstance(
                     new EncryptedData(cipherData, exponent),
                     new EncryptedNonces(new EncryptedNonce[dataQuery.getSettings().getNrOperators()]),
@@ -81,11 +83,18 @@ public class DataQueryContract implements ContractInterface {
                 || res.getNrParticipants() != nrParticipants)
             res.setIncFlag();
         res.addToCipherNonces(EncryptedNonce.deserialise(cipherNonce));
-        if(res.getCipherNonces().isFull()) dataQuery.setDone();
 
-        byte[] serDataQuery = DataQuery.serialize(dataQuery);
+        byte[] serDataQuery;
+        if(res.getCipherNonces().isFull()) {
+            dataQuery.setDone();
+            serDataQuery = DataQuery.serialize(dataQuery);
+            stub.setEvent("DoneQuery", serDataQuery);
+            stub.putState(id, serDataQuery);
+            return new String(serDataQuery);
+        } else serDataQuery = DataQuery.serialize(dataQuery);
+
+        stub.setEvent("ResultQuery", serDataQuery);
         stub.putState(id, serDataQuery);
-        stub.setEvent("DoneQuery", serDataQuery);
         return new String(serDataQuery);
     }
 
@@ -139,6 +148,7 @@ public class DataQueryContract implements ContractInterface {
         ChaincodeStub stub = retrieveStub(ctx, id);
         byte[] serDataQuery = stub.getState(id);
         stub.delState(id);
+        stub.setEvent("RemoveQuery", serDataQuery);
         return new String(serDataQuery);
     }
 

@@ -1,11 +1,12 @@
 package applications.operator.generators;
 
-import org.bouncycastler.crypto.AsymmetricCipherKeyPair;
+import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonce;
+import datatypes.values.EncryptedNonces;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 import shared.Pair;
 
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.util.Random;
 
 public class DataGenerator {
@@ -15,14 +16,14 @@ public class DataGenerator {
      * @param modulus the modulus of the public key of the paillier public key.
      * @return encrypted data.
      */
-    public static Pair<Pair<String, Integer>, byte[][]> generateDataAndNonces(String modulus, String[] postQuantumPks) throws InvalidCipherTextException {
-        BigInteger data = new BigInteger(String.valueOf(new Random().nextInt())); //The actual data
-        byte[][] nonces = new byte[postQuantumPks.length][];
-        for(int i = 0; i < postQuantumPks.length; i++) {
-            BigInteger nonce = new BigInteger(String.valueOf(new Random().nextInt()));
+    public static Pair<EncryptedData, EncryptedNonces> generateDataAndNonces(String modulus, String[] postQuantumPks) throws InvalidCipherTextException {
+        BigInteger data = new BigInteger(String.valueOf(new Random().nextInt(Integer.MAX_VALUE)));
+        EncryptedNonces nonces = new EncryptedNonces(new EncryptedNonce[postQuantumPks.length]);
+        for (String postQuantumPk : postQuantumPks) {
+            BigInteger nonce = new BigInteger(String.valueOf(new Random().nextInt(Integer.MAX_VALUE)));
             data = data.add(nonce);
 
-            nonces[i] = NTRUEncryption.encrypt(String.valueOf(nonce).getBytes(), postQuantumPks[i]);
+            nonces.addNonce(new EncryptedNonce(NTRUEncryption.encrypt(String.valueOf(nonce).getBytes(), postQuantumPk)));
         }
         return new Pair<>(PaillierEncryption.encrypt(data, modulus), nonces);
     }

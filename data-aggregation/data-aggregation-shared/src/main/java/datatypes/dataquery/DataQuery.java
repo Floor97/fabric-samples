@@ -95,7 +95,7 @@ public class DataQuery {
 
             dataQuery = createInstance(id,
                     DataQuerySettings.createInstance(paillierModulus, postQuantumPk, nrOperators, endTime),
-                    DataQueryResult.createInstance(EncryptedData.deserialise(cipherData), EncryptedNonces.deserialise(nonces), nrParticipants)
+                    DataQueryResult.createInstance(EncryptedData.deserialize(cipherData), EncryptedNonces.deserialize(nonces), nrParticipants)
             );
             if(incFlag) dataQuery.getResult().setIncFlag();
         } else {

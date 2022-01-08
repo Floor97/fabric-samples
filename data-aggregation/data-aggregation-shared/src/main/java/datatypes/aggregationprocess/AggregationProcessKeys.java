@@ -21,10 +21,10 @@ public class AggregationProcessKeys {
         return operatorKeys;
     }
 
-    public AggregationProcessKeys addOperatorKey(String operatorKey) {
+    public int addOperatorKey(String operatorKey) {
         if(isOperatorKeysFull()) throw new RuntimeException("Operator keys is full");
         this.operatorKeys[pointer++] = operatorKey;
-        return this;
+        return pointer;
     }
 
     public boolean isOperatorKeysFull() {

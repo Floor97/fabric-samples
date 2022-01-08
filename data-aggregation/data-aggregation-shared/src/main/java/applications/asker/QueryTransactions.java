@@ -17,11 +17,11 @@ import java.util.concurrent.TimeoutException;
 public class QueryTransactions {
     private static Scanner scan = new Scanner(System.in);
 
-    public static void start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
+    public static Pair<String, DataQueryKeyStore> start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         DataQueryKeyStore newKeys = DataQueryKeyStore.createInstance();
         Pair<PaillierPublicKey, NTRUEncryptionPublicKeyParameters> pubkeys = newKeys.getPublicKeys();
 
-        printResponse(
+        DataQuery dataQuery = DataQuery.deserialize(
                 contract.submitTransaction(
                         "StartQuery",
                         IdFactory.getInstance().createId(),
@@ -31,6 +31,7 @@ public class QueryTransactions {
                         scanNextLine("End Time: ")
                 )
         );
+        return new Pair<>(dataQuery.getId(), newKeys);
     }
 
     public static void add(Contract contract) throws ContractException, InterruptedException, TimeoutException {

@@ -1,6 +1,7 @@
 package datatypes.values;
 
 import applications.operator.generators.NTRUEncryption;
+import datatypes.aggregationprocess.AggregationProcess;
 import org.bouncycastler.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.json.JSONObject;
@@ -46,7 +47,7 @@ public class EncryptedNonces {
         return json.toString();
     }
 
-    public static EncryptedNonces deserialise(String serEncryptedNonces) {
+    public static EncryptedNonces deserialize(String serEncryptedNonces) {
         JSONObject json = new JSONObject(serEncryptedNonces);
 
         String[] encNonces = json.getJSONArray("nonces").toList().toArray(new String[0]);
@@ -57,10 +58,10 @@ public class EncryptedNonces {
         return new EncryptedNonces(nonces);
     }
 
-    public static EncryptedNonce condenseNonces(AsymmetricCipherKeyPair kp, String[] encNonces, String postQuantumPk) throws InvalidCipherTextException {
+    public static EncryptedNonce condenseNonces(AsymmetricCipherKeyPair kp, EncryptedNonces encNonces, String postQuantumPk) throws InvalidCipherTextException {
         BigInteger summedNonce = new BigInteger("0");
-        for(String encNonce: encNonces) {
-            byte[] encNonce2 = encNonce.getBytes();
+        for(EncryptedNonce encNonce: encNonces.getNonces()) {
+            byte[] encNonce2 = encNonce.getNonce();
             summedNonce = summedNonce.add(new BigInteger(NTRUEncryption.decrypt(encNonce2, kp)));
         }
 
@@ -71,6 +72,14 @@ public class EncryptedNonces {
         return nonces;
     }
 
+    public static EncryptedNonces getOperatorNonces(AggregationProcess aggregationProcess, int index) {
+        EncryptedNonces operatorNonces = new EncryptedNonces(new EncryptedNonce[aggregationProcess.getData().getNrParticipants()]);
+
+        for(EncryptedNonces nonces: aggregationProcess.getData().getCipherNonces())
+            operatorNonces.addNonce(nonces.getNonces()[index]);
+
+        return operatorNonces;
+    }
     @Override
     public String toString() {
         return Arrays.toString(nonces);

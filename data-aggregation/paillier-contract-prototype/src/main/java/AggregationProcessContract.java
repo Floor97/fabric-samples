@@ -4,6 +4,8 @@ import com.n1analytics.paillier.PaillierPublicKey;
 import datatypes.aggregationprocess.AggregationProcess;
 import datatypes.aggregationprocess.AggregationProcessData;
 import datatypes.aggregationprocess.AggregationProcessKeys;
+import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonces;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
@@ -12,7 +14,6 @@ import org.hyperledger.fabric.contract.annotation.Info;
 import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
-import shared.Pair;
 
 import java.lang.annotation.Annotation;
 import java.math.BigInteger;
@@ -40,11 +41,21 @@ public class AggregationProcessContract implements ContractInterface, Contract {
 
         AggregationProcess aggregationProcess = AggregationProcess.createInstance(
                 id,
-                AggregationProcessKeys.createInstance(paillierModulus, nrOperators).addOperatorKey(postQuantumPk),
+                AggregationProcessKeys.createInstance(paillierModulus, nrOperators),
                 AggregationProcessData.createInstance(null, nrOperators)
         );
+        aggregationProcess.getKeystore().addOperatorKey(postQuantumPk);
 
-        byte[] serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
+        byte[] serAggregationProcess;
+        if(aggregationProcess.getKeystore().isOperatorKeysFull()) {
+            aggregationProcess.setAggregating();
+            serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
+            stub.setEvent("StartAggregation", serAggregationProcess);
+        } else {
+            serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
+            stub.setEvent("StartSelection", serAggregationProcess);
+        }
+
         stub.putState(id, serAggregationProcess);
         return new String(serAggregationProcess);
     }
@@ -63,12 +74,16 @@ public class AggregationProcessContract implements ContractInterface, Contract {
         AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
         if (!aggregationProcess.isSelecting()) throw new ChaincodeException("Process is not in selection phase");
 
-        aggregationProcess.getKeystore().addOperatorKey(postQuantumPk);
-        if (aggregationProcess.getKeystore().isOperatorKeysFull()) aggregationProcess.setAggregating();
+        int index = aggregationProcess.getKeystore().addOperatorKey(postQuantumPk);
+        byte[] serAggregationProcess;
+        if (aggregationProcess.getKeystore().isOperatorKeysFull()) {
+            aggregationProcess.setAggregating();
+            serAggregationProcess =  AggregationProcess.serialize(aggregationProcess);
+            stub.setEvent("StartAggregation", serAggregationProcess);
+        } else serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
 
-        byte[] serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
         stub.putState(id, serAggregationProcess);
-        return new String(serAggregationProcess);
+        return String.valueOf(index);
     }
 
     /**
@@ -76,32 +91,37 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      *
      * @param ctx        the transaction context.
      * @param id         the unique id of the aggregation process.
-     * @param cipherData the ciphertext of the new entry in the aggregation process.
-     * @param exponent   the exponent of the ciphertext of the new entry.
-     * @param nonces     the encrypted nonces used on the data.
+     * @param serNewData the ciphertext of the new entry in the aggregation process.
+     * @param serNonces  the exponent of the ciphertext of the new entry.
      * @return the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String AddData(Context ctx, String id, String cipherData, String exponent, String[] nonces) {
+    public String AddData(Context ctx, String id, String serNewData, String serNonces) {
         ChaincodeStub stub = retrieveStub(ctx, id);
         AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
+        EncryptedData newData = EncryptedData.deserialize(serNewData);
+        EncryptedNonces nonces = EncryptedNonces.deserialize(serNonces);
 
         if (!aggregationProcess.isAggregating()) throw new ChaincodeException("Process is not in aggregating phase");
 
-        AggregationProcessData data = aggregationProcess.getData();
+        AggregationProcessData currentData = aggregationProcess.getData();
         if (aggregationProcess.getData().getCipherData() != null) {
             PaillierPublicKey pk = new PaillierPublicKey(new BigInteger(aggregationProcess.getKeystore().getPaillierModulus()));
             PaillierContext pctx = pk.createSignedContext();
-            EncryptedNumber numberData = new EncryptedNumber(pctx, data.getCipherData().getP1(), data.getCipherData().getP2(), true);
-            EncryptedNumber entry = new EncryptedNumber(pctx, new BigInteger(cipherData), Integer.parseInt(exponent), true);
+            EncryptedNumber numberData = new EncryptedNumber(
+                    pctx,
+                    new BigInteger(currentData.getCipherData().getData()),
+                    Integer.parseInt(currentData.getCipherData().getExponent()),
+                    true);
+            EncryptedNumber entry = new EncryptedNumber(pctx, new BigInteger(newData.getData()), Integer.parseInt(newData.getExponent()), true);
 
-            EncryptedNumber newData = numberData.add(entry);
+            EncryptedNumber data = numberData.add(entry);
 
-            data.setCipherData(new Pair<>(newData.calculateCiphertext(), newData.getExponent()));
+            currentData.setCipherData(new EncryptedData(data.calculateCiphertext().toString(), String.valueOf(data.getExponent())));
         } else
-            aggregationProcess.getData().setCipherData(new Pair<>(new BigInteger(cipherData), Integer.valueOf(exponent)));
+            aggregationProcess.getData().setCipherData(new EncryptedData(newData.getData(), newData.getExponent()));
 
-        data.addNonce(nonces);
+        currentData.addNonces(nonces);
 
         byte[] serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
         stub.putState(id, serAggregationProcess);
@@ -115,7 +135,7 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      * @param id  the unique id of the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void Close(Context ctx, String id) {
+    public String Close(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
 
         AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
@@ -126,6 +146,7 @@ public class AggregationProcessContract implements ContractInterface, Contract {
 
         byte[] serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
         stub.putState(id, serAggregationProcess);
+        return new String(serAggregationProcess);
     }
 
     /**
@@ -149,9 +170,11 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      * @return the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public void RemoveAggregationProcess(Context ctx, String id) {
+    public String RemoveAggregationProcess(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
+        String aggregationProcess = stub.getStringState(id);
         stub.delState(id);
+        return aggregationProcess;
     }
 
     /**

@@ -33,8 +33,8 @@ public class Application {
 
             insertIdentity(wallet);
 
-            String username = "User1@org2.example.com";
-            Path connectionProfile = Paths.get("..", "gateway", "connection-org2.yaml");
+            String username = "User1@org1.example.com";
+            Path connectionProfile = Paths.get("..", "gateway", "connection-org1.yaml");
             builder.identity(wallet, username).networkConfig(connectionProfile).discovery(true);
 
             try(Gateway gateway = builder.connect()) {
@@ -63,8 +63,8 @@ public class Application {
     }
 
     private static void insertIdentity(Wallet wallet) {
-        Path credentialPath = Paths.get("..", "..", "test-network", "organizations", "peerOrganizations", "org2.example.com", "users", "User1@org2.example.com", "msp");
-        Path certificatePath = credentialPath.resolve(Paths.get("signcerts", "User1@org2.example.com-cert.pem"));
+        Path credentialPath = Paths.get("..", "..", "test-network", "organizations", "peerOrganizations", "org1.example.com", "users", "User1@org1.example.com", "msp");
+        Path certificatePath = credentialPath.resolve(Paths.get("signcerts", "User1@org1.example.com-cert.pem"));
         Path privateKeyPath = credentialPath.resolve(Paths.get("keystore", "priv_sk"));
         X509Certificate certificate;
         PrivateKey privateKey;
@@ -75,9 +75,9 @@ public class Application {
             e.printStackTrace();
             return;
         }
-        Identity identity = Identities.newX509Identity("Org2MSP", certificate, privateKey);
+        Identity identity = Identities.newX509Identity("Org1MSP", certificate, privateKey);
 
-        String identityLabel = "User1@org2.example.com";
+        String identityLabel = "User1@org1.example.com";
         try {
             wallet.put(identityLabel, identity);
         } catch (IOException e) {

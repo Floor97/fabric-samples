@@ -19,7 +19,7 @@ public class DataQueryKeyStore implements KeyStore {
     }
 
     public DataQueryKeyStore setPaillierKeys() {
-        paillierKeys = PaillierPrivateKey.create(64);
+        paillierKeys = PaillierPrivateKey.create(2048);
         return this;
     }
 

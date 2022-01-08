@@ -1,5 +1,7 @@
 package datatypes.aggregationprocess;
 
+import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonces;
 import shared.Pair;
 
 import java.math.BigInteger;
@@ -9,8 +11,8 @@ import java.util.stream.Collectors;
 
 public class AggregationProcessData {
 
-    private Pair<BigInteger, Integer> cipherData;
-    private ArrayList<String[]> cipherNonces;
+    private EncryptedData cipherData;
+    private ArrayList<EncryptedNonces> cipherNonces;
     private int nrParticipants = 0;
     private final int nrOperators;
 
@@ -18,27 +20,27 @@ public class AggregationProcessData {
        this.nrOperators = nrOperators;
     }
 
-    public Pair<BigInteger, Integer> getCipherData() {
+    public EncryptedData getCipherData() {
         return cipherData;
     }
 
-    public AggregationProcessData setCipherData(Pair<BigInteger, Integer> cipherData) {
+    public AggregationProcessData setCipherData(EncryptedData cipherData) {
         this.cipherData = cipherData;
         return this;
     }
 
-    public ArrayList<String[]> getCipherNonces() {
+    public ArrayList<EncryptedNonces> getCipherNonces() {
         return cipherNonces;
     }
 
-    public AggregationProcessData setCipherNonces(ArrayList<String[]> cipherNonces) {
+    public AggregationProcessData setCipherNonces(ArrayList<EncryptedNonces> cipherNonces) {
         this.cipherNonces = cipherNonces;
         this.nrParticipants = cipherNonces.size();
         return this;
     }
 
-    public AggregationProcessData addNonce(String[] cipherNonce) {
-        if(cipherNonce.length != this.nrOperators) throw new RuntimeException("The amount of nonces supplied is not equal to the amount of operators involved");
+    public AggregationProcessData addNonces(EncryptedNonces cipherNonce) {
+        if(cipherNonce.getNonces().length != this.nrOperators) throw new RuntimeException("The amount of nonces supplied is not equal to the amount of operators involved");
         this.cipherNonces.add(cipherNonce);
         nrParticipants++;
         return this;
@@ -56,7 +58,7 @@ public class AggregationProcessData {
      * @param nrOperators the number of operators involved in the aggregation process.
      * @return the AggregationProcessData object.
      */
-    public static AggregationProcessData createInstance(Pair<BigInteger, Integer> cipherData, int nrOperators) {
+    public static AggregationProcessData createInstance(EncryptedData cipherData, int nrOperators) {
         return new AggregationProcessData(nrOperators)
                 .setCipherData(cipherData)
                 .setCipherNonces(new ArrayList<>());
@@ -68,12 +70,12 @@ public class AggregationProcessData {
             return "    ciphertext of data: null,\n     " +
                     "exponent of data: null,\n    " +
                     "number of participants: " + this.nrParticipants +
-                    ",\n    ciphertext of nonces: " + this.cipherNonces.stream().map(Arrays::toString).collect(Collectors.joining());
+                    ",\n    ciphertext of nonces: " + this.cipherNonces.stream().map(EncryptedNonces::toString).collect(Collectors.joining());
 
 
-        return "    ciphertext of data: " + this.cipherData.getP1().intValue() +
-                ",\n    exponent of data: " + this.cipherData.getP2() +
+        return "    ciphertext of data: " + this.cipherData.getData() +
+                ",\n    exponent of data: " + this.cipherData.getExponent() +
                 ",\n    number of participants: " + this.nrParticipants +
-                ",\n    ciphertext of nonces: " + this.cipherNonces.stream().map(Arrays::toString).collect(Collectors.joining());
+                ",\n    ciphertext of nonces: " + this.cipherNonces.stream().map(EncryptedNonces::toString).collect(Collectors.joining());
     }
 }
