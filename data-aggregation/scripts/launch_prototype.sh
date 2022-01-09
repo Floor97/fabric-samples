@@ -1,60 +1,60 @@
 #!/usr/bin/env bash
 
 function deploy() {
-    beep
-    cd ../../test-network
+    beep 2>/dev/null || true
+
     # Expects to work in the 'test-network' folder
     if [ "${PWD##*/}" != "test-network" ]; then
       echo "This expects to be run from the 'test-network' folder"
       return 1
     fi
 
-    # First deploy the thing
-    if [[ $CHAINCODE_NAME == "aggregationprocess" ]]; then
-      ./network.sh deployCC -ccn "$CHAINCODE_NAME"  -ccp "../data-aggregation/paillier-contract-prototype/" -ccl java -ccv $1
-    else
-      ./network.sh deployCC -ccn "$CHAINCODE_NAME"  -ccp "../data-aggregation/data-query-contract-prototype/" -ccl java -ccv $1
-    fi
+    # First deploy the things
+    # Can't use the network.sh function, it would deploy on channel 2 as well	
+	./$SCRIPTS/deployCC.sh "participants" "aggregationprocess" \
+		"../data-aggregation/paillier-contract-prototype/" "java" "$1"
+	./network.sh deployCC -c asker -ccn "query" \
+		-ccp "../data-aggregation/data-query-contract-prototype/" \
+		-ccl java -ccv $1
 
-    # Export the path to some binaries
+    # Export the path and set globals
     export PATH=${PWD}/../bin:$PATH
     export FABRIC_CFG_PATH=$PWD/../config/
-
-    # Environment variables for Org1
-    export CORE_PEER_TLS_ENABLED=true
-    export CORE_PEER_LOCALMSPID="Org1MSP"
-    export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
-    export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-    export CORE_PEER_ADDRESS=localhost:7051
+    . scripts/envVar.sh
+    setGlobals 1
 }
 
 function stop() {
-    # Expects to work in the 'scripts' folder
-    if [ "${PWD##*/}" != "scripts" ]; then
-      echo "This expects to be run from the 'scripts' folder"
+
+    # Expects to work in the 'test-network' folder
+    if [ "${PWD##*/}" != "test-network" ]; then
+      echo "This expects to be run from the 'test-network' folder"
       return 1
     fi
 
     docker stop logspout || true
-    cd ../../test-network
     ./network.sh down
+
+    for (( i=1; i<=$NUMBER_PEERS; i++ )); do
+        ./$SCRIPTS/createPeer.sh 1 $i -r
+    done
 }
 
 function start() {
-    beep
-    stop # Stop, which also changes folder
-    ./network.sh up createChannel
+    beep 2>/dev/null || true
+    stop # Stop the network
+    ./network.sh up -ca                         # creates p0o1 and p0o2
+    ./network.sh createChannel -c "asker"       # creates channel "asker", both peers join
+    ./$SCRIPTS/createChannel.sh "participants"  # creates channel "participant", only p0o1 joins
 
-    cd ../data-aggregation/scripts
+    \cp "organizations/peerOrganizations/org1.example.com/connection-org1.yaml" "${SCRIPT_DIR}/../gateway/"
+    \cp "organizations/peerOrganizations/org2.example.com/connection-org2.yaml" "${SCRIPT_DIR}/../gateway/"
 
-    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    deploy 1 # Deploy both chaincodes
 
-    echo "WORKING NOW --------------------------------------------------------------------------------------"
-    cp "${DIR}/../../test-network/organizations/peerOrganizations/org1.example.com/connection-org1.yaml" "${DIR}/../gateway/"
-    cp "${DIR}/../../test-network/organizations/peerOrganizations/org2.example.com/connection-org2.yaml" "${DIR}/../gateway/"
-    echo "WORKING NOW --------------------------------------------------------------------------------------"
-
-    cd ../../test-network
+	for (( i=1; i<=$NUMBER_PEERS; i++ )); do
+        ./$SCRIPTS/createPeer.sh 1 $i -c asker participants -n aggregationprocess query
+    done
 }
 
 if [ $# -eq 0 ]; then # Help menu if no args
@@ -65,20 +65,21 @@ if [ $# -eq 0 ]; then # Help menu if no args
   return 0
 fi
 
-case "$2" in
-  "agg"   ) CHAINCODE_NAME="aggregationprocess";;
-  "query" ) CHAINCODE_NAME="query";;
-  * ) echo "Unrecognized contract" && return 1;;
-esac
+BACKTO=$(pwd)
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+cd "$SCRIPT_DIR/../../test-network"
+SCRIPTS="../data-aggregation/scripts"
+
+NUMBER_PEERS="${2:-5}"
 
 case "$1" in
-  "start"  )  start && deploy 1 ;;
+  "start"  )  start ;;
   "deploy" )  deploy $3;;
   "stop"   )  stop ;;
   * ) echo "Unrecognized command" && return 1;;
 esac
 
-cd ../data-aggregation/scripts
+cd "$BACKTO"
 
 
 
