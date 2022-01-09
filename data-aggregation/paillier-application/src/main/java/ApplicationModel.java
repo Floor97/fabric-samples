@@ -18,6 +18,8 @@ public class ApplicationModel {
     public static final String CONTRACT_NAME_QUERY = "query.eventcontract";
     public static final String CHANNEL_NAME_QUERY = "mychannel";
 
+    private int operatorThreshold = 10;
+
     private ApplicationModel() {
         queryKeys = new HashMap<>();
         ids = new HashSet<>();
@@ -52,5 +54,13 @@ public class ApplicationModel {
     public static ApplicationModel getInstance() {
         if(applicationModel == null) applicationModel = new ApplicationModel();
         return applicationModel;
+    }
+
+    public int getOperatorThreshold() {
+        return operatorThreshold;
+    }
+
+    public void setOperatorThreshold(int operatorThreshold) {
+        this.operatorThreshold = operatorThreshold;
     }
 }

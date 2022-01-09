@@ -18,12 +18,13 @@ public class DataGenerator {
      */
     public static Pair<EncryptedData, EncryptedNonces> generateDataAndNonces(String modulus, String[] postQuantumPks) throws InvalidCipherTextException {
         BigInteger data = new BigInteger(String.valueOf(new Random().nextInt(Integer.MAX_VALUE)));
+        System.out.println("data: " + data);
         EncryptedNonces nonces = new EncryptedNonces(new EncryptedNonce[postQuantumPks.length]);
         for (String postQuantumPk : postQuantumPks) {
-            BigInteger nonce = new BigInteger(String.valueOf(new Random().nextInt(Integer.MAX_VALUE)));
-            data = data.add(nonce);
+            String nonce = String.valueOf(new Random().nextInt(Integer.MAX_VALUE));
+            data = data.add(new BigInteger(nonce));
 
-            nonces.addNonce(new EncryptedNonce(NTRUEncryption.encrypt(String.valueOf(nonce).getBytes(), postQuantumPk)));
+            nonces.addNonce(new EncryptedNonce(NTRUEncryption.encrypt(nonce.getBytes(), postQuantumPk)));
         }
         return new Pair<>(PaillierEncryption.encrypt(data, modulus), nonces);
     }

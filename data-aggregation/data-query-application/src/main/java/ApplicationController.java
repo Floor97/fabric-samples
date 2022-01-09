@@ -75,7 +75,8 @@ public class ApplicationController {
                         BigInteger dataAndNonces = PaillierEncryption.decrypt(data, keystore.getPaillierKeys());
                         try {
                             for (EncryptedNonce nonce : nonces.getNonces()) {
-                                dataAndNonces = dataAndNonces.subtract(new BigInteger(NTRUEncryption.decrypt(nonce.getNonce(), keystore.getPostQuantumKeys())));
+                                byte[] decryptedNonce = NTRUEncryption.decrypt(nonce.getNonce(), keystore.getPostQuantumKeys());
+                                dataAndNonces = dataAndNonces.subtract(new BigInteger(new String(decryptedNonce)));
                             }
                         } catch (InvalidCipherTextException e) {
                             e.printStackTrace();

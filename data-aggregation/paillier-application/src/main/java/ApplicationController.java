@@ -11,7 +11,6 @@ import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractEvent;
 import org.hyperledger.fabric.gateway.ContractException;
-import org.hyperledger.fabric.shim.ChaincodeException;
 import shared.Pair;
 
 import java.util.Scanner;
@@ -86,7 +85,7 @@ public class ApplicationController {
             } catch (InterruptedException | TimeoutException | InvalidCipherTextException e) {
                 e.printStackTrace();
             } catch (ContractException e) {
-                System.out.println(e);
+                System.out.println(e.getMessage());
             }
         };
         contractQuery.addContractListener(consumer);
@@ -103,6 +102,9 @@ public class ApplicationController {
                         ApplicationModel.getInstance().addProcess(aggregationProcess.getId(), opKeystore);
                         break;
                     case "StartAggregation":
+                        if(ApplicationModel.getInstance().getOperatorThreshold() > aggregationProcess.getData().getNrOperators() //if less operators than threshold
+                                && ApplicationModel.getInstance().getKey(aggregationProcess.getId()) == null)                    //and self not operator, don't participate
+                            return;
                         System.out.println("StartAggregation Event");
                         Pair<EncryptedData, EncryptedNonces> dataAndNonces = DataGenerator.generateDataAndNonces(aggregationProcess.getKeystore().getPaillierModulus(), aggregationProcess.getKeystore().getOperatorKeys());
                         AggregationTransactions.adddata(contractAgg, aggregationProcess.getId(), dataAndNonces.getP1().getData(), dataAndNonces.getP1().getExponent(), dataAndNonces.getP2());
@@ -114,7 +116,7 @@ public class ApplicationController {
             } catch (InterruptedException | TimeoutException | org.bouncycastler.crypto.InvalidCipherTextException e) {
                 e.printStackTrace();
             } catch (ContractException e) {
-                System.out.println(e);
+                System.out.println(e.getMessage());
             }
         };
 
@@ -140,7 +142,7 @@ public class ApplicationController {
                 } catch (InterruptedException | TimeoutException | InvalidCipherTextException e) {
                     e.printStackTrace();
                 } catch (ContractException e) {
-                    System.out.println(e);
+                    System.out.println(e.getMessage());
                 }
             }
 

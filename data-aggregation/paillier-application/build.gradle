@@ -7,11 +7,14 @@ version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+    maven { url "https://www.jitpack.io" }
 }
 
-dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
+apply plugin: 'application'
+mainClassName = 'Application'
+run {
+    standardInput = System.in
 }
 
 dependencies {
@@ -19,8 +22,26 @@ dependencies {
     implementation 'com.n1analytics:javallier_2.10:0.6.0'
     implementation 'com.squareup.jnagmp:jnagmp:2.0.0'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.10.6'
-    compileOnly group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.+'
-    compileOnly group: 'org.json', name: 'json', version: '20180813'
+    implementation group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.4.1'
+    implementation group: 'org.json', name: 'json', version: '20180813'
     implementation project(':data-aggregation-shared')
     implementation files('../libs/core-1.70.jar')
+
+    constraints {
+        implementation('io.grpc:grpc-api:1.39.0') {
+            because 'previous versions have a bug impacting this application'
+        }
+        implementation('io.grpc:grpc-netty-shaded:1.39.0') {
+            because 'previous versions have a bug impacting this application'
+        }
+        implementation('io.grpc:grpc-protobuf:1.39.0') {
+            because 'previous versions have a bug impacting this application'
+        }
+        implementation('io.grpc:grpc-stub:1.39.0') {
+            because 'previous versions have a bug impacting this application'
+        }
+        implementation('io.grpc:grpc-netty:1.39.0') {
+            because 'previous versions have a bug impacting this application'
+        }
+    }
 }
