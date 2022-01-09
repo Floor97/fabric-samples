@@ -152,8 +152,8 @@ public class DataQuery {
     @Override
     public String toString() {
         return "queryID: " + this.id +
-                ",\n settings: " + this.settings +
-                ",\n result: " + this.result +
+                ",\nsettings:\n " + this.settings +
+                ",\n result:\n " + this.result +
                 ",\n state: " + this.state;
     }
 

@@ -149,8 +149,8 @@ public class AggregationProcess {
     @Override
     public String toString() {
         return "id: " + this.id +
-                "keystore: " + this.keystore +
-                "data: " + this.data +
+                "keystore:\n" + this.keystore +
+                "data:\n" + this.data +
                 "state: " + this.state;
     }
 
