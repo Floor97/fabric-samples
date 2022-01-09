@@ -1,2 +1,4 @@
 rootProject.name = 'aggregationprocess'
+include ':data-aggregation-shared'
+project (':data-aggregation-shared').projectDir = new File('../data-aggregation-shared')
 

@@ -9,12 +9,12 @@ function start() {
       --tls \
       --cafile "${TEST_NET}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" \
       -C mychannel \
-      -n data-query-contract \
+      -n query \
       --peerAddresses localhost:7051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" \
-      -c '{"function":"StartQuery","Args":["'$1'","'$2'","'$3'","'$4'", "'$5'", "'$6'"]}' \
+      -c '{"function":"StartQuery","Args":["'$1'","'$2'","'$3'","'$4'", "'$5'"]}' \
       2>&1 | sed 's/result: /result:\n/g' | sed 's/status:200 /status:200\n/g'
   );
 }
@@ -27,12 +27,12 @@ function add() {
       --tls \
       --cafile "${TEST_NET}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" \
       -C mychannel \
-      -n data-query-contract \
+      -n query \
       --peerAddresses localhost:7051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" \
-      -c '{"function":"AddResult","Args":["'$1'","'$2'","'$3'", "'$4'"]}' \
+      -c '{"function":"AddResult","Args":["'$1'","'$2'","'$3'", "'$4'", "'$5'"]}' \
       2>&1 | sed 's/result: /result:\n/g' | sed 's/status:200 /status:200\n/g'
   );
 }
@@ -45,7 +45,7 @@ function close() {
       --tls \
       --cafile "${TEST_NET}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" \
       -C mychannel \
-      -n data-query-contract \
+      -n query \
       --peerAddresses localhost:7051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
@@ -63,7 +63,7 @@ function retrieve() {
       --tls \
       --cafile "${TEST_NET}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" \
       -C mychannel \
-      -n data-query-contract \
+      -n query \
       --peerAddresses localhost:7051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
@@ -81,7 +81,7 @@ function remove() {
       --tls \
       --cafile "${TEST_NET}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" \
       -C mychannel \
-      -n data-query-contract \
+      -n query \
       --peerAddresses localhost:7051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
@@ -99,7 +99,7 @@ function exists() {
       --tls \
       --cafile "${TEST_NET}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" \
       -C mychannel \
-      -n data-query-contract \
+      -n query \
       --peerAddresses localhost:7051 \
       --tlsRootCertFiles "${TEST_NET}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
       --peerAddresses localhost:9051 \
@@ -112,12 +112,12 @@ function exists() {
 
 if [ $# -eq 0 ]; then # Help menu if no args
   echo "To use this script, use one of the options:"
-  echo "start    - to start a new data query             - params: queryID, modulus, ciphertext, exponent"
-  echo "add      - To add the result of the data query   - params: queryID, ciphertext, exponent"
-  echo "close    - To close the data query               - params: queryID"
-  echo "retrieve - To retrieve and remove the data query - params: queryID"
-  echo "remove   - To remove the data query              - params: queryID"
-  echo "exists   - To check if an data query exists      - params: queryID"
+  echo "start    - to start a new data query             - params: id, paillierModulus, postQuantumPk, nrOperators, endTime"
+  echo "add      - To add the result of the data query   - params: id, cipherData, exponent, cipherNonce, nrParticipants"
+  echo "close    - To close the data query               - params: id"
+  echo "retrieve - To retrieve and remove the data query - params: id"
+  echo "remove   - To remove the data query              - params: id"
+  echo "exists   - To check if an data query exists      - params: id"
 
   return 0
 fi
@@ -126,8 +126,8 @@ TEST_NET="${PWD}/../../test-network"
 RESULT=""
 
 case "$1" in
-  "start"   ) start $2 $3 $4 $5 $6 $7;;
-  "add"     ) add $2 $3 $4 $5;;
+  "start"   ) start $2 $3 $4 $5 $6;;
+  "add"     ) add $2 $3 $4 $5 $6;;
   "close"   ) close $2;;
   "retrieve") retrieve $2;;
   "remove"  ) remove $2;;

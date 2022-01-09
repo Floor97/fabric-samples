@@ -1,6 +1,11 @@
 import com.n1analytics.paillier.EncryptedNumber;
 import com.n1analytics.paillier.PaillierContext;
 import com.n1analytics.paillier.PaillierPublicKey;
+import datatypes.aggregationprocess.AggregationProcess;
+import datatypes.aggregationprocess.AggregationProcessData;
+import datatypes.aggregationprocess.AggregationProcessKeys;
+import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonces;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
@@ -9,164 +14,195 @@ import org.hyperledger.fabric.contract.annotation.Info;
 import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
-import org.hyperledger.fabric.shim.ledger.KeyValue;
-import org.hyperledger.fabric.shim.ledger.QueryResultsIterator;
 
 import java.lang.annotation.Annotation;
 import java.math.BigInteger;
-import java.util.ArrayList;
 
-//todo suggestion change name to "channelp.aggregationprocess"
 @Default
-@Contract(name="aggregationprocess.pailliercontract")
+@Contract(name = "aggregationprocess.pailliercontract")
 public class AggregationProcessContract implements ContractInterface, Contract {
 
     /**
      * Starts a data aggregation process.
-     * @param ctx the transaction context.
-     * @param key the unique key of the aggregation process.
-     * @param modulus the modulus of the public key used to encrypt the cData.
-     * @param cData the ciphertext of the aggregated data.
-     * @param expData the exponent of the ciphertext of the aggregated data.
+     *
+     * @param ctx             the transaction context.
+     * @param id              the unique id of the aggregation process.
+     * @param paillierModulus the paillierModulus of the public id used to encrypt the cipherData.
+     * @param postQuantumPk   the public key of the post-quantum encryption scheme.
+     * @param nrOperators     the number of operators in the process.
      * @return the created aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String StartAggregation(Context ctx, String key, String modulus, String cData, String expData) {
+    public String StartAggregation(Context ctx, String id, String paillierModulus, String postQuantumPk, int nrOperators) {
         ChaincodeStub stub = ctx.getStub();
-        if (AggregationProcessExists(ctx, key)) {
-            throw new ChaincodeException(String.format("Aggregation process, %s, already exists", key));
+        if (AggregationProcessExists(ctx, id)) {
+            throw new ChaincodeException(String.format("Aggregation process, %s, already exists", id));
         }
 
-        AggregationProcess aggregationProcess = AggregationProcess.createInstance(key, new BigInteger(modulus),
-                new BigInteger(cData), Integer.parseInt(expData), 1, "").setAggregating();
+        AggregationProcess aggregationProcess = AggregationProcess.createInstance(
+                id,
+                AggregationProcessKeys.createInstance(paillierModulus, nrOperators),
+                AggregationProcessData.createInstance(null, nrOperators)
+        );
+        aggregationProcess.getKeystore().addOperatorKey(postQuantumPk);
 
-        String serAggregationProcess = getSerialized(aggregationProcess);
-        stub.putStringState(key, serAggregationProcess);
-        return serAggregationProcess;
+        byte[] serAggregationProcess;
+        if(aggregationProcess.getKeystore().isOperatorKeysFull()) {
+            aggregationProcess.setAggregating();
+            serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
+            stub.setEvent("StartAggregation", serAggregationProcess);
+        } else {
+            serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
+            stub.setEvent("StartSelection", serAggregationProcess);
+        }
+
+        stub.putState(id, serAggregationProcess);
+        return new String(serAggregationProcess);
+    }
+
+    /**
+     * Adds a new operator key to the aggregation process.
+     *
+     * @param ctx           the transaction context.
+     * @param id            the unique id of the aggregation process.
+     * @param postQuantumPk the public key of the post-quantum encryption scheme.
+     * @return the aggregation process.
+     */
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
+    public String AddOperator(Context ctx, String id, String postQuantumPk) {
+        ChaincodeStub stub = retrieveStub(ctx, id);
+        AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
+        if (!aggregationProcess.isSelecting()) throw new ChaincodeException("Process is not in selection phase");
+
+        int index = aggregationProcess.getKeystore().addOperatorKey(postQuantumPk);
+        byte[] serAggregationProcess;
+        if (aggregationProcess.getKeystore().isOperatorKeysFull()) {
+            aggregationProcess.setAggregating();
+            serAggregationProcess =  AggregationProcess.serialize(aggregationProcess);
+            stub.setEvent("StartAggregation", serAggregationProcess);
+        } else serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
+
+        stub.putState(id, serAggregationProcess);
+        return String.valueOf(index);
     }
 
     /**
      * Adds the new entry to the already aggregated data.
-     * @param ctx the transaction context.
-     * @param key the unique key of the aggregation process.
-     * @param cEntry the ciphertext of the new entry in the aggregation process.
-     * @param expEntry the exponent of the ciphertext of the new entry.
+     *
+     * @param ctx        the transaction context.
+     * @param id         the unique id of the aggregation process.
+     * @param serNewData the ciphertext of the new entry in the aggregation process.
+     * @param serNonces  the exponent of the ciphertext of the new entry.
      * @return the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String AddData(Context ctx, String key, String cEntry, String expEntry) {
-        ChaincodeStub stub = retrieveStub(ctx, key);
-        AggregationProcess aggregationProcess = getDeserialized(stub.getStringState(key));
+    public String AddData(Context ctx, String id, String serNewData, String serNonces) {
+        ChaincodeStub stub = retrieveStub(ctx, id);
+        AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
+        EncryptedData newData = EncryptedData.deserialize(serNewData);
+        EncryptedNonces nonces = EncryptedNonces.deserialize(serNonces);
 
-        PaillierPublicKey pk = new PaillierPublicKey(aggregationProcess.getModulus());
-        PaillierContext pctx = pk.createSignedContext();
-        EncryptedNumber data =  new EncryptedNumber(pctx, aggregationProcess.getcData(), aggregationProcess.getExpData(), true);
-        EncryptedNumber entry = new EncryptedNumber(pctx, new BigInteger(cEntry), Integer.parseInt(expEntry), true);
+        if (!aggregationProcess.isAggregating()) throw new ChaincodeException("Process is not in aggregating phase");
 
-        EncryptedNumber newData = data.add(entry);
+        AggregationProcessData currentData = aggregationProcess.getData();
+        if (aggregationProcess.getData().getCipherData() != null) {
+            PaillierPublicKey pk = new PaillierPublicKey(new BigInteger(aggregationProcess.getKeystore().getPaillierModulus()));
+            PaillierContext pctx = pk.createSignedContext();
+            EncryptedNumber numberData = new EncryptedNumber(
+                    pctx,
+                    new BigInteger(currentData.getCipherData().getData()),
+                    Integer.parseInt(currentData.getCipherData().getExponent()),
+                    true);
+            EncryptedNumber entry = new EncryptedNumber(pctx, new BigInteger(newData.getData()), Integer.parseInt(newData.getExponent()), true);
 
-        aggregationProcess.setcData(newData.calculateCiphertext());
-        aggregationProcess.setExpData(newData.getExponent());
-        aggregationProcess.setNrParticipants(aggregationProcess.getNrParticipants() + 1);
+            EncryptedNumber data = numberData.add(entry);
 
-        String serAggregationProcess = getSerialized(aggregationProcess);
-        stub.putStringState(key, serAggregationProcess);
-        return serAggregationProcess;
+            currentData.setCipherData(new EncryptedData(data.calculateCiphertext().toString(), String.valueOf(data.getExponent())));
+        } else
+            aggregationProcess.getData().setCipherData(new EncryptedData(newData.getData(), newData.getExponent()));
+
+        currentData.addNonces(nonces);
+
+        byte[] serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
+        stub.putState(id, serAggregationProcess);
+        return new String(serAggregationProcess);
     }
 
     /**
-     * Closes the aggregation process of the key.
+     * Closes the aggregation process of the id.
+     *
      * @param ctx the transaction context.
-     * @param key the unique key of the aggregation process.
+     * @param id  the unique id of the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void Close(Context ctx, String key) {
-        ChaincodeStub stub = retrieveStub(ctx, key);
+    public String Close(Context ctx, String id) {
+        ChaincodeStub stub = retrieveStub(ctx, id);
 
-        AggregationProcess aggregationProcess = getDeserialized(stub.getStringState(key));
-        if(aggregationProcess.isClosed())
-            throw new ChaincodeException(String.format("Aggregation process %s is already closed", key));
+        AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
+        if (aggregationProcess.isClosed())
+            throw new ChaincodeException(String.format("Aggregation process %s is already closed", id));
 
         aggregationProcess.setClosed();
 
-        String serAggregationProcess = getSerialized(aggregationProcess);
-        stub.putStringState(key, serAggregationProcess);
+        byte[] serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
+        stub.putState(id, serAggregationProcess);
+        return new String(serAggregationProcess);
     }
 
     /**
      * The aggregation process is retrieved and removed.
+     *
      * @param ctx the transaction context.
-     * @param key the unique key of the aggregation process.
+     * @param id  the unique id of the aggregation process.
      * @return the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String RetrieveAggregationProcess(Context ctx, String key) {
-        ChaincodeStub stub = retrieveStub(ctx, key);
-        return stub.getStringState(key);
+    public String RetrieveAggregationProcess(Context ctx, String id) {
+        ChaincodeStub stub = retrieveStub(ctx, id);
+        return stub.getStringState(id);
     }
 
     /**
      * The aggregation process is retrieved and removed.
+     *
      * @param ctx the transaction context.
-     * @param key the unique key of the aggregation process.
+     * @param id  the unique id of the aggregation process.
      * @return the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public void RemoveAggregationProcess(Context ctx, String key) {
-        ChaincodeStub stub = retrieveStub(ctx, key);
-        stub.delState(key);
+    public String RemoveAggregationProcess(Context ctx, String id) {
+        ChaincodeStub stub = retrieveStub(ctx, id);
+        String aggregationProcess = stub.getStringState(id);
+        stub.delState(id);
+        return aggregationProcess;
     }
 
     /**
      * Checks the existence of the aggregation process on the ledger.
+     *
      * @param ctx the transaction context.
-     * @param key the unique key of the aggregation process.
+     * @param id  the unique id of the aggregation process.
      * @return boolean indicating the existence of the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public boolean AggregationProcessExists(Context ctx, final String key) {
-        String assetJSON = ctx.getStub().getStringState(key);
+    public boolean AggregationProcessExists(Context ctx, final String id) {
+        String assetJSON = ctx.getStub().getStringState(id);
         return (assetJSON != null && !assetJSON.isEmpty());
     }
 
     /**
      * Checks if the aggregation process exists, and returns the chaincode stub.
+     *
      * @param ctx the transaction context.
-     * @param key the unique key of the aggregation process.
+     * @param id  the unique id of the aggregation process.
      * @return the chaincode stub of the transaction context.
      */
-    private ChaincodeStub retrieveStub(Context ctx, String key) {
+    private ChaincodeStub retrieveStub(Context ctx, String id) {
         ChaincodeStub stub = ctx.getStub();
-        if(!AggregationProcessExists(ctx, key))
-            throw new ChaincodeException(String.format("Asset %s does not exist", key));
+        if (!AggregationProcessExists(ctx, id))
+            throw new ChaincodeException(String.format("Asset %s does not exist", id));
 
         return stub;
-    }
-
-    /**
-     * Serializes the aggregation process.
-     * @param aggregationProcess the aggregation process that will be serialized.
-     * @return the serialized aggregation process.
-     */
-    private String getSerialized(AggregationProcess aggregationProcess) {
-        String serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
-        if(serAggregationProcess == null)
-            throw new ChaincodeException("Unable to serialize the aggregation process");
-
-        return serAggregationProcess;
-    }
-
-    /**
-     * Deserializes the JSON into an aggregation process.
-     * @param data the JSON value of the aggregation process.
-     * @return the deserialized aggregation process.
-     */
-    private AggregationProcess getDeserialized(String data) {
-        AggregationProcess aggregationProcess = AggregationProcess.deserialize(data);
-        if(aggregationProcess == null)
-            throw new ChaincodeException("Unable to deserialize aggregation process");
-
-        return aggregationProcess;
     }
 
     //todo implement Contract methods.

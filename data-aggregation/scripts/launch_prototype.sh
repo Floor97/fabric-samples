@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 function deploy() {
+    beep
     cd ../../test-network
     # Expects to work in the 'test-network' folder
     if [ "${PWD##*/}" != "test-network" ]; then
@@ -10,9 +11,9 @@ function deploy() {
 
     # First deploy the thing
     if [[ $CHAINCODE_NAME == "aggregationprocess" ]]; then
-      ./network.sh deployCC -ccn "$CHAINCODE_NAME"  -ccp "../data-aggregation/paillier-contract-prototype/" -ccl java
+      ./network.sh deployCC -ccn "$CHAINCODE_NAME"  -ccp "../data-aggregation/paillier-contract-prototype/" -ccl java -ccv $1
     else
-      ./network.sh deployCC -ccn "$CHAINCODE_NAME"  -ccp "../data-aggregation/data-query-contract-prototype/" -ccl java
+      ./network.sh deployCC -ccn "$CHAINCODE_NAME"  -ccp "../data-aggregation/data-query-contract-prototype/" -ccl java -ccv $1
     fi
 
     # Export the path to some binaries
@@ -40,6 +41,7 @@ function stop() {
 }
 
 function start() {
+    beep
     stop # Stop, which also changes folder
     ./network.sh up createChannel
 
@@ -70,8 +72,8 @@ case "$2" in
 esac
 
 case "$1" in
-  "start"  )  start && deploy  ;;
-  "deploy" )  deploy ;;
+  "start"  )  start && deploy 1 ;;
+  "deploy" )  deploy $3;;
   "stop"   )  stop ;;
   * ) echo "Unrecognized command" && return 1;;
 esac

@@ -1,3 +1,9 @@
+import datatypes.dataquery.DataQuery;
+import datatypes.dataquery.DataQueryResult;
+import datatypes.dataquery.DataQuerySettings;
+import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonce;
+import datatypes.values.EncryptedNonces;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
@@ -5,116 +11,156 @@ import org.hyperledger.fabric.contract.annotation.Default;
 import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
+import shared.Pair;
 
-//todo suggestion change name to "channela.dataquery"
 @Default
 @Contract(name="query.eventcontract")
 public class DataQueryContract implements ContractInterface {
 
     /**
-     * Starts a data query.
+     * Starts a new data query.
      * @param ctx the transaction context.
-     * @param queryID the unique queryID of the data query.
-     * @param modulus the modulus of the public key used to encrypt the result.
-     * @param result the ciphertext of the result.
-     * @param expResult the exponent of the ciphertext of the result.
-     * @param timeLimit the time limit for the data query.
-     * @param nrParticipants the number of participants required in the data query.
-     * @return the created data query.
+     * @param id the id of the new data query process.
+     * @param paillierModulus the Paillier modulus of the public key of the invoker of the data query process.
+     * @param postQuantumPk the public key of the post-quantum encryption method.
+     * @param nrOperators the number of operators used in the process.
+     * @param endTime the end time for the process.
+     * @return the new data query process as a String.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String StartQuery(Context ctx, String queryID, String modulus, String result, String expResult,
-                                   String timeLimit, String nrParticipants) {
+    public String StartQuery(Context ctx, String id, String paillierModulus, String postQuantumPk,
+                             int nrOperators, long endTime) {
         ChaincodeStub stub = ctx.getStub();
-        if (DataQueryExists(ctx, queryID)) {
-            throw new ChaincodeException(String.format("Data query, %s, already exists", queryID));
+        if (DataQueryExists(ctx, id)) {
+            throw new ChaincodeException(String.format("Data query, %s, already exists", id));
         }
+        DataQuery dataQuery = DataQuery.createInstance(
+                id,
+                DataQuerySettings.createInstance(
+                        paillierModulus,
+                        postQuantumPk,
+                        nrOperators,
+                        endTime
+                ),
+                null
+        );
 
-        DataQuery dataQuery = DataQuery.createInstance(queryID, modulus, result, expResult, timeLimit, nrParticipants,
-                "").setWaiting();
-
-        String serDataQuery = getSerialized(dataQuery);
-        stub.putStringState(queryID, serDataQuery);
-        return serDataQuery;
-    }
-
-    @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String AddResult(Context ctx, String queryID, String result, String expResult, String nrParticipants) {
-        ChaincodeStub stub = retrieveStub(ctx, queryID);
-
-        DataQuery dataQuery = getDeserialized(stub.getStringState(queryID));
-        if(!dataQuery.isWaiting())
-            throw new ChaincodeException(String.format("Data query, %s, has status %s", queryID, dataQuery.getStatus()));
-
-        dataQuery.setResult(result);
-        dataQuery.setExpResult(expResult);
-        dataQuery.setNrParticipants(nrParticipants);
-        dataQuery.setDone();
-
-        String serDataQuery = getSerialized(dataQuery);
-        stub.putStringState(queryID, serDataQuery);
-        return serDataQuery;
+        byte[] serDataQuery = DataQuery.serialize(dataQuery);
+        stub.putState(id, serDataQuery);
+        stub.setEvent("StartQuery", serDataQuery);
+        return new String(serDataQuery);
     }
 
     /**
-     * Closes the data query associated with the key.
+     * Add the result of the data query process.
      * @param ctx the transaction context.
-     * @param key the unique key of the data query.
+     * @param id the id of the data query process.
+     * @param cipherData the ciphertext of the data plus nonces encrypted with paillier.
+     * @param exponent the exponent of the ciphertext of the data encrypted with paillier.
+     * @param cipherNonce the ciphertext of the nonces encrypted using a post-quantum encryption scheme.
+     * @param nrParticipants the number of participants in the data aggregation process.
+     * @return the DataQuery object as a String.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void Close(Context ctx, String key) {
-        ChaincodeStub stub = retrieveStub(ctx, key);
+    public String AddResult(Context ctx, String id, String cipherData, String exponent, String cipherNonce,
+                            int nrParticipants) {
+        boolean first = false;
+        ChaincodeStub stub = retrieveStub(ctx, id);
+        DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
 
-        DataQuery dataQuery = getDeserialized(stub.getStringState(key));
+        if(!dataQuery.isWaiting())
+            throw new ChaincodeException(String.format("Data query, %s, is not waiting", id));
+
+        DataQueryResult res = dataQuery.getResult();
+        if(res == null) {
+            first = true;
+            res = dataQuery.setResult(DataQueryResult.createInstance(
+                    new EncryptedData(cipherData, exponent),
+                    new EncryptedNonces(new EncryptedNonce[dataQuery.getSettings().getNrOperators()]),
+                    nrParticipants)).getResult();
+        } else if ((!res.getCipherData().getData().equals(cipherData))
+                || (!res.getCipherData().getExponent().equals(exponent))
+                || res.getNrParticipants() != nrParticipants)
+            res.setIncFlag();
+        res.addToCipherNonces(EncryptedNonce.deserialise(cipherNonce));
+
+        byte[] serDataQuery;
+        if(res.getCipherNonces().isFull()) {
+            dataQuery.setDone();
+            serDataQuery = DataQuery.serialize(dataQuery);
+            stub.setEvent("DoneQuery", serDataQuery);
+            stub.putState(id, serDataQuery);
+            return new String(serDataQuery);
+        } else serDataQuery = DataQuery.serialize(dataQuery);
+
+        stub.setEvent("ResultQuery", serDataQuery);
+        stub.putState(id, serDataQuery);
+        return new String(serDataQuery);
+    }
+
+    /**
+     * Closes the data query associated with the id.
+     * @param ctx the transaction context.
+     * @param id the unique id of the data query.
+     */
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
+    public String Close(Context ctx, String id) {
+        ChaincodeStub stub = retrieveStub(ctx, id);
+
+        DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
         if(dataQuery.isClosed())
-            throw new ChaincodeException(String.format("Data query, %s, is already closed", key));
+            throw new ChaincodeException(String.format("Data query, %s, is already closed", id));
 
         dataQuery.setClosed();
-
-        stub.putStringState(key, getSerialized(dataQuery));
+        byte[] serDataQuery = DataQuery.serialize(dataQuery);
+        stub.putState(id, serDataQuery);
+        return new String(serDataQuery);
     }
 
     /**
      * The data query is retrieved.
      * @param ctx the transaction context.
-     * @param queryID the unique queryID of the data query.
+     * @param id the unique id of the data query.
      * @return the data query.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String RetrieveDataQuery(Context ctx, String queryID) {
-        ChaincodeStub stub = retrieveStub(ctx, queryID);
-        DataQuery dataQuery = getDeserialized(stub.getStringState(queryID));
+    public String RetrieveDataQuery(Context ctx, String id) {
+        ChaincodeStub stub = retrieveStub(ctx, id);
+        DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
 
         if(dataQuery.isWaiting())
-            throw new ChaincodeException(String.format("The data query, %s, is waiting so cannot be retrieved", queryID));
+            throw new ChaincodeException(String.format("The data query, %s, is waiting so cannot be retrieved", id));
         if(dataQuery.isDone())
             dataQuery.setClosed();
 
-        String serDataQuery = getSerialized(dataQuery);
-        stub.putStringState(queryID, serDataQuery);
-        return serDataQuery;
+        byte[] serDataQuery = DataQuery.serialize(dataQuery);
+        stub.putState(id, serDataQuery);
+        return new String(serDataQuery);
     }
 
     /**
      * The data query is removed.
      * @param ctx the transaction context.
-     * @param queryID the unique queryID of the data query.
+     * @param id the unique id of the data query.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public void RemoveDataQuery(Context ctx, String queryID) {
-        ChaincodeStub stub = retrieveStub(ctx, queryID);
-        stub.delState(queryID);
+    public String RemoveDataQuery(Context ctx, String id) {
+        ChaincodeStub stub = retrieveStub(ctx, id);
+        byte[] serDataQuery = stub.getState(id);
+        stub.delState(id);
+        stub.setEvent("RemoveQuery", serDataQuery);
+        return new String(serDataQuery);
     }
 
     /**
      * Checks the existence of the data query on the ledger.
      * @param ctx the transaction context.
-     * @param key the unique key of the data query.
+     * @param id the unique id of the data query.
      * @return boolean indicating the existence of the data query.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public boolean DataQueryExists(Context ctx, final String key) {
-        String assetJSON = ctx.getStub().getStringState(key);
+    public boolean DataQueryExists(Context ctx, final String id) {
+        String assetJSON = ctx.getStub().getStringState(id);
         return (assetJSON != null && !assetJSON.isEmpty());
     }
 
@@ -132,29 +178,4 @@ public class DataQueryContract implements ContractInterface {
         return stub;
     }
 
-    /**
-     * Serializes the data query.
-     * @param dataQuery the data query that will be serialized.
-     * @return the serialized data query.
-     */
-    private String getSerialized(DataQuery dataQuery) {
-        String serDataQuery = DataQuery.serialize(dataQuery);
-        if(serDataQuery == null)
-            throw new ChaincodeException("Unable to serialize the data query");
-
-        return serDataQuery;
-    }
-
-    /**
-     * Deserializes the JSON into a data query.
-     * @param data the JSON value of the data query.
-     * @return the deserialized data query.
-     */
-    private DataQuery getDeserialized(String data) {
-        DataQuery dataQuery = DataQuery.deserialize(data);
-        if(dataQuery == null)
-            throw new ChaincodeException("Unable to deserialize data query");
-
-        return dataQuery;
-    }
 }
