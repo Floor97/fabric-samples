@@ -1,4 +1,6 @@
 import applications.operator.OperatorKeyStore;
+import datatypes.values.IPFSFile;
+import io.ipfs.api.IPFS;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,6 +10,7 @@ public class ApplicationModel {
     private static ApplicationModel applicationModel = null;
 
     private final HashMap<String, OperatorKeyStore> queryKeys;
+    private final HashMap<String, String> ipfsHash;
     private final HashSet<String> ids;
 
     public static final String CC_NAME_AGG = "aggregationprocess";
@@ -22,6 +25,7 @@ public class ApplicationModel {
 
     private ApplicationModel() {
         queryKeys = new HashMap<>();
+        ipfsHash = new HashMap<>();
         ids = new HashSet<>();
     }
 
@@ -43,12 +47,22 @@ public class ApplicationModel {
 
     public boolean removeProcess(String id) {
         queryKeys.remove(id);
+        ipfsHash.remove(id);
         return ids.remove(id);
     }
 
-    public void addProcess(String id, OperatorKeyStore keys) {
-        this.addKey(id, keys);
+    public void addProcess(String id, OperatorKeyStore keys, String hash) {
+        queryKeys.put(id, keys);
+        ipfsHash.put(id, hash);
         ids.add(id);
+    }
+
+    public void addIpfsHash(String id, String hash) {
+        ipfsHash.put(id, hash);
+    }
+
+    public String getIpfsHash(String id) {
+        return ipfsHash.get(id);
     }
 
     public static ApplicationModel getInstance() {

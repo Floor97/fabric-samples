@@ -1,7 +1,7 @@
 package datatypes.dataquery;
 
-import datatypes.values.EncryptedData;
-import datatypes.values.EncryptedNonces;
+import datatypes.values.IPFSFile;
+import io.ipfs.multihash.Multihash;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 import org.json.JSONObject;
@@ -18,7 +18,10 @@ public class DataQuery {
     private DataQuerySettings settings;
 
     @Property()
-    private DataQueryResult result;
+    private boolean incFlag;
+
+    @Property()
+    private IPFSFile ipfsFile;
 
     @Property()
     private DataQueryState state = DataQueryState.WAITING;
@@ -41,13 +44,21 @@ public class DataQuery {
         return this;
     }
 
-    public DataQueryResult getResult() {
-        return result;
+    public IPFSFile getIpfsFile() {
+        return ipfsFile;
     }
 
-    public DataQuery setResult(DataQueryResult result) {
-        this.result = result;
+    public DataQuery setIpfsFile(IPFSFile ipfsFile) {
+        this.ipfsFile = ipfsFile;
         return this;
+    }
+
+    public boolean isIncFlag() {
+        return incFlag;
+    }
+
+    public void setIncFlag() {
+        this.incFlag = true;
     }
 
     public boolean isWaiting() {
@@ -81,29 +92,16 @@ public class DataQuery {
         JSONObject json = new JSONObject(new String(data, UTF_8));
 
         String id = json.getString("id");
-        String paillierModulus = json.getString("paillierModulus");
-        String postQuantumPk = json.getString("postQuantumPk");
         int nrOperators = json.getInt("nrOperators");
-        long endTime = json.getLong("endTime");
+        long endTime = json.getLong("duration");
+        boolean incFlag = json.getBoolean("incFlag");
+        IPFSFile file = IPFSFile.deserialize(json.getString("file"));
 
-        DataQuery dataQuery;
-        if (!json.has("result")) {
-            String cipherData = json.getString("cipherData");
-            int nrParticipants = json.getInt("nrParticipants");
-            String nonces = json.getString("cipherNonces");
-            boolean incFlag = json.getBoolean("incFlag");
-
-            dataQuery = createInstance(id,
-                    DataQuerySettings.createInstance(paillierModulus, postQuantumPk, nrOperators, endTime),
-                    DataQueryResult.createInstance(EncryptedData.deserialize(cipherData), EncryptedNonces.deserialize(nonces), nrParticipants)
-            );
-            if(incFlag) dataQuery.getResult().setIncFlag();
-        } else {
-            dataQuery = createInstance(id,
-                    DataQuerySettings.createInstance(paillierModulus, postQuantumPk, nrOperators, endTime),
-                    null
-            );
-        }
+        DataQuery dataQuery = createInstance(id,
+                DataQuerySettings.createInstance(nrOperators, endTime),
+                file
+        );
+        if (incFlag) dataQuery.setIncFlag();
 
         dataQuery.state = json.getEnum(DataQueryState.class, "state");
         return dataQuery;
@@ -116,21 +114,13 @@ public class DataQuery {
      * @return the JSON value of the data query object.
      */
     public static byte[] serialize(DataQuery dataQuery) {
-        DataQueryResult res = dataQuery.getResult();
-
         JSONObject json = new JSONObject()
                 .put("id", dataQuery.id)
-                .put("paillierModulus", dataQuery.getSettings().getPaillierModulus())
-                .put("postQuantumPk", dataQuery.getSettings().getPostQuantumPk())
                 .put("nrOperators", dataQuery.getSettings().getNrOperators())
-                .put("endTime", dataQuery.getSettings().getEndTime())
-                .put("state", dataQuery.state);
-        if (res != null)
-            json.put("cipherData", EncryptedData.serialize(res.getCipherData()))
-                    .put("cipherNonces", EncryptedNonces.serialize(dataQuery.getResult().getCipherNonces()))
-                    .put("nrParticipants", dataQuery.getResult().getNrParticipants())
-                    .put("incFlag", dataQuery.getResult().isIncFlag());
-        else json.put("result", "null");
+                .put("duration", dataQuery.getSettings().getDuration())
+                .put("state", dataQuery.state)
+                .put("incFlag", dataQuery.incFlag)
+                .put("file", IPFSFile.serialize(dataQuery.ipfsFile));
         return json.toString().getBytes(UTF_8);
     }
 
@@ -139,21 +129,35 @@ public class DataQuery {
      *
      * @param id       the unique id of the process.
      * @param settings The settings of the process.
-     * @param result   The result of the process.
+     * @param hash     The hash of the IPFS file used in the process.
      * @return the created DataQuery object.
      */
-    public static DataQuery createInstance(String id, DataQuerySettings settings, DataQueryResult result) {
+    public static DataQuery createInstance(String id, DataQuerySettings settings, Multihash hash) {
         return new DataQuery()
                 .setId(id)
                 .setSettings(settings)
-                .setResult(result);
+                .setIpfsFile(new IPFSFile(hash));
+    }
+
+    /**
+     * Factory method for creating an DataQuery object.
+     *
+     * @param id       the unique id of the process.
+     * @param settings The settings of the process.
+     * @param file     the IPFSFile used in the process.
+     * @return the created DataQuery object.
+     */
+    public static DataQuery createInstance(String id, DataQuerySettings settings, IPFSFile file) {
+        return new DataQuery()
+                .setId(id)
+                .setSettings(settings)
+                .setIpfsFile(file);
     }
 
     @Override
     public String toString() {
         return "queryID: " + this.id +
                 ",\nsettings:\n " + this.settings +
-                ",\n result:\n " + this.result +
                 ",\n state: " + this.state;
     }
 

@@ -21,7 +21,7 @@ public class QueryTransactions {
                         id,
                         data.getCipherData() == null ? null : data.getCipherData().getData(),
                         data.getCipherData() == null ? null : data.getCipherData().getExponent(),
-                        EncryptedNonce.serialise(condensedNonces),
+                        EncryptedNonce.serialize(condensedNonces),
                         String.valueOf(data.getNrParticipants())
                 )
         );//todo change data and exponent

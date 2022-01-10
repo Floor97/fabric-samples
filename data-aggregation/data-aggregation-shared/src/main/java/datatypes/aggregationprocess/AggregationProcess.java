@@ -1,12 +1,9 @@
 package datatypes.aggregationprocess;
 
-import datatypes.values.EncryptedData;
-import datatypes.values.EncryptedNonces;
+import datatypes.values.IPFSFile;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 import org.json.JSONObject;
-
-import java.util.ArrayList;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -17,10 +14,7 @@ public class AggregationProcess {
     private String id;
 
     @Property()
-    private AggregationProcessKeys keystore;
-
-    @Property()
-    private AggregationProcessData data;
+    private IPFSFile ipfsFile;
 
     @Property()
     private AggregationProcessState state = AggregationProcessState.SELECTING;
@@ -32,24 +26,6 @@ public class AggregationProcess {
 
     public AggregationProcess setId(String processID) {
         this.id = processID;
-        return this;
-    }
-
-    public AggregationProcessKeys getKeystore() {
-        return keystore;
-    }
-
-    public AggregationProcess setKeystore(AggregationProcessKeys keystore) {
-        this.keystore = keystore;
-        return this;
-    }
-
-    public AggregationProcessData getData() {
-        return data;
-    }
-
-    public AggregationProcess setData(AggregationProcessData data) {
-        this.data = data;
         return this;
     }
 
@@ -75,6 +51,15 @@ public class AggregationProcess {
         return this;
     }
 
+    public IPFSFile getIpfsFile() {
+        return ipfsFile;
+    }
+
+    public AggregationProcess setIpfsFile(IPFSFile ipfsFile) {
+        this.ipfsFile = ipfsFile;
+        return this;
+    }
+
     //todo make nrParticipants and nonces less easy to manipulate
 
     /**
@@ -87,25 +72,10 @@ public class AggregationProcess {
         JSONObject json = new JSONObject(new String(data, UTF_8));
 
         String id = json.getString("id");
-        String paillierModulus = json.getString("paillierModulus");
-        String[] operatorKeys = json.getJSONArray("operatorKeys").toList().toArray(new String[0]);
-        String cipherData = json.getString("cipherData");
-        String exponent = json.getString("exponent");
-        ArrayList<String> cipherNonces = new ArrayList(json.getJSONArray("cipherNonces").toList());
-
-        ArrayList<EncryptedNonces> nonces = new ArrayList<>(cipherNonces.size());
-        for(String nonce : cipherNonces)
-            nonces.add(EncryptedNonces.deserialize(nonce));
-
-        int nrOperators = json.getInt("nrOperators");
+        IPFSFile ipfsFile = IPFSFile.deserialize(json.getString("file"));
         AggregationProcessState state = json.getEnum(AggregationProcessState.class, "state");
 
-
-        AggregationProcess aggregationProcess = createInstance(id,
-                AggregationProcessKeys.createInstance(paillierModulus, nrOperators).setOperatorKeys(operatorKeys),
-                AggregationProcessData.createInstance(cipherData.equals("null") ? null : new EncryptedData(cipherData, exponent), nrOperators)
-                        .setCipherNonces(nonces)
-        );
+        AggregationProcess aggregationProcess = createInstance(id, ipfsFile);
         aggregationProcess.state = state;
         return aggregationProcess;
     }
@@ -117,19 +87,9 @@ public class AggregationProcess {
      * @return the JSON value of the aggregation process object.
      */
     public static byte[] serialize(AggregationProcess aggregationProcess) {
-        EncryptedData data = aggregationProcess.getData().getCipherData();
-        ArrayList<String> serNonces = new ArrayList<>();
-        for(EncryptedNonces nonces : aggregationProcess.getData().getCipherNonces())
-            serNonces.add(EncryptedNonces.serialize(nonces));
-
         return new JSONObject()
                 .put("id", aggregationProcess.id)
-                .put("paillierModulus", aggregationProcess.keystore.getPaillierModulus())
-                .put("operatorKeys", aggregationProcess.getKeystore().getOperatorKeys())
-                .put("cipherData", data == null ? "null" : data.getData())
-                .put("exponent", data == null ? "null" : String.valueOf(data.getExponent()))
-                .put("cipherNonces", serNonces)
-                .put("nrOperators", aggregationProcess.getData().getNrOperators())
+                .put("file", aggregationProcess.ipfsFile)
                 .put("state", aggregationProcess.state)
                 .toString().getBytes(UTF_8);
     }
@@ -137,20 +97,17 @@ public class AggregationProcess {
     /**
      * Factory method for creating an AggregationProcess object.
      *
-     * @param id       the unique id of the aggregation process.
-     * @param keystore an object that holds the keys involved in the aggregation process.
-     * @param data     an object that holds the data collected in the aggregation process.
+     * @param id   the unique id of the aggregation process.
+     * @param file the file corresponding to the process.
      * @return the created AggregationProcess object.
      */
-    public static AggregationProcess createInstance(String id, AggregationProcessKeys keystore, AggregationProcessData data) {
-        return new AggregationProcess().setId(id).setKeystore(keystore).setData(data);
+    public static AggregationProcess createInstance(String id, IPFSFile file) {
+        return new AggregationProcess().setId(id).setIpfsFile(file);
     }
 
     @Override
     public String toString() {
         return "id: " + this.id +
-                "keystore:\n" + this.keystore +
-                "data:\n" + this.data +
                 "state: " + this.state;
     }
 

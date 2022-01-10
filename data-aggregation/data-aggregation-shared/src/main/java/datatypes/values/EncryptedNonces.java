@@ -20,6 +20,14 @@ public class EncryptedNonces {
         setPointer();
     }
 
+    public EncryptedNonces(byte[][] nonces) {
+        this.nonces = new EncryptedNonce[nonces.length];
+        for (int i = 0; i < nonces.length; i++) {
+            this.nonces[i] = new EncryptedNonce(nonces[i]);
+        }
+        setPointer();
+    }
+
     public void addNonce(EncryptedNonce nonce) {
         if(isFull()) throw new RuntimeException("Nonces are full");
         nonces[pointer++] = nonce;
@@ -40,7 +48,7 @@ public class EncryptedNonces {
     public static String serialize(EncryptedNonces encryptedNonces) {
         String[] strEncryptedNonces = new String[encryptedNonces.nonces.length];
         for (int i = 0; i < encryptedNonces.nonces.length; i++) {
-            strEncryptedNonces[i] = EncryptedNonce.serialise(encryptedNonces.nonces[i]);
+            strEncryptedNonces[i] = EncryptedNonce.serialize(encryptedNonces.nonces[i]);
         }
         JSONObject json = new JSONObject();
         json.put("nonces", strEncryptedNonces);
@@ -73,15 +81,23 @@ public class EncryptedNonces {
     }
 
     public static EncryptedNonces getOperatorNonces(AggregationProcess aggregationProcess, int index) {
-        EncryptedNonces operatorNonces = new EncryptedNonces(new EncryptedNonce[aggregationProcess.getData().getNrParticipants()]);
+        EncryptedNonces[] allNonces = aggregationProcess.getIpfsFile().getNonces();
+        EncryptedNonces operatorNonces = new EncryptedNonces(new EncryptedNonce[allNonces.length]);
 
-        for(EncryptedNonces nonces: aggregationProcess.getData().getCipherNonces())
-            operatorNonces.addNonce(nonces.getNonces()[index]);
+        for(EncryptedNonces partNonces: allNonces)
+            operatorNonces.addNonce(partNonces.getNonces()[index]);
 
         return operatorNonces;
     }
+
     @Override
     public String toString() {
-        return Arrays.toString(nonces);
+        StringBuilder build = new StringBuilder("[");
+        for (int i = 0; i < nonces.length; i++) {
+            build.append(nonces[i].toString());
+            if(i != nonces.length - 1) build.append(",");
+        }
+        build.append("]");
+        return build.toString();
     }
 }

@@ -14,7 +14,7 @@ public class EncryptedNonce {
         return new EncryptedNonce(Base64.getDecoder().decode(serNonce));
     }
 
-    public static String serialise(EncryptedNonce encryptedNonce) {
+    public static String serialize(EncryptedNonce encryptedNonce) {
         return Base64.getEncoder().encodeToString(encryptedNonce.nonce);
     }
 
@@ -24,6 +24,6 @@ public class EncryptedNonce {
 
     @Override
     public String toString() {
-        return serialise(this);
+        return serialize(this);
     }
 }
