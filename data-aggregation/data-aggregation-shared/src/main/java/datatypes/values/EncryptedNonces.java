@@ -55,6 +55,10 @@ public class EncryptedNonces {
         return json.toString();
     }
 
+    public static EncryptedNonces deserialize(byte[] serEncryptedNonces) {
+        return EncryptedNonces.deserialize(new String(serEncryptedNonces));
+    }
+
     public static EncryptedNonces deserialize(String serEncryptedNonces) {
         JSONObject json = new JSONObject(serEncryptedNonces);
 

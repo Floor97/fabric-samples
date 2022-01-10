@@ -26,13 +26,13 @@ public class DataQuerySettings {
     /**
      * Factory method for DataQuerySettings.
      * @param nrOperators the number of operators used in the process.
-     * @param endTime the end time of the process.
+     * @param duration the end time of the process.
      * @return a new DataQuerySettings object.
      */
-    public static DataQuerySettings createInstance(int nrOperators, long endTime) {
+    public static DataQuerySettings createInstance(int nrOperators, long duration) {
         return new DataQuerySettings()
                 .setNrOperators(nrOperators)
-                .setDuration(endTime);
+                .setDuration(duration);
     }
 
     @Override

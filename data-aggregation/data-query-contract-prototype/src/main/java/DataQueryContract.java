@@ -1,12 +1,10 @@
+import applications.KeyStore;
 import datatypes.dataquery.DataQuery;
-import datatypes.dataquery.DataQueryResult;
 import datatypes.dataquery.DataQuerySettings;
 import datatypes.values.EncryptedData;
-import datatypes.values.EncryptedNonce;
 import datatypes.values.EncryptedNonces;
-import datatypes.values.IPFSConnection;
 import datatypes.values.IPFSFile;
-import io.ipfs.multihash.Multihash;
+import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
@@ -15,127 +13,95 @@ import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 @Default
 @Contract(name = "query.eventcontract")
 public class DataQueryContract implements ContractInterface {
 
-
-    @Override
-    public void beforeTransaction(Context ctx) {
-        ChaincodeStub stub = ctx.getStub();
-
-        switch(stub.getFunction()) {
-            case "StartQuery":
-                List<byte[]> args = stub.getArgs();
-                Map<String, byte[]> map = stub.getTransient();
-
-                IPFSFile ipfsFile = new IPFSFile(null, Arrays.toString(map.get("paillier")), map.get("post-quantum"), new String[0],
-                        "", new datatypes.values.EncryptedNonces[0]);
-                ipfsFile.setHash(Multihash.fromHex(IPFSConnection.getInstance().addFile(ipfsFile)));
-                stub.putState(Arrays.toString(args.get(0)), null);
-                break;
-            case "AddResult": break;
-            case "Close": break;
-            case "RetrieveDataQuery": break;
-            case "RemoveDataQuery": break;
-            case "DataQueryExists": break;
-            default: break;
-        }
-    }
-
     /**
-     * Starts a new data query.
+     * Instantiates a new data query process on the ledger. The keys of the asker are provided and stored
+     * on IPFS. The number of operators and duration of the process are also specified in the data query
+     * object. The event StartQuery is set in the transaction. Throws an exception if the suggested id
+     * of the data query process is already in use.
      *
-     * @param ctx             the transaction context.
-     * @param id              the id of the new data query process.
-     * @param paillierModulus the Paillier modulus of the public key of the invoker of the data query process.
-     * @param postQuantumPk   the public key of the post-quantum encryption method.
-     * @param nrOperators     the number of operators used in the process.
-     * @param endTime         the end time for the process.
+     * @param ctx         the transaction context.
+     * @param id          the id of the new data query process.
+     * @param nrOperators the number of operators used in the process.
+     * @param duration    the end time for the process.
      * @return the new data query process as a String.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String StartQuery(Context ctx, String id, String paillierModulus, String postQuantumPk,
-                             int nrOperators, long endTime) {
+    public byte[] StartQuery(Context ctx, String id, int nrOperators, long duration) {
         ChaincodeStub stub = ctx.getStub();
-        if (DataQueryExists(ctx, id)) {
+        Map<String, byte[]> map = stub.getTransient();
+
+        if (DataQueryExists(ctx, id))
             throw new ChaincodeException(String.format("Data query, %s, already exists", id));
-        }
 
-        IPFSFile ipfsFile = new IPFSFile(null, paillierModulus, postQuantumPk, new String[0],
-                "", new datatypes.values.EncryptedNonces[0]);
-        ipfsFile.setHash(Multihash.fromHex(IPFSConnection.getInstance().addFile(ipfsFile)));
+        IPFSFile ipfsFile = new IPFSFile(
+                new String(map.get("paillier")),
+                KeyStore.pqToPubKey(map.get("post-quantum")),
+                new NTRUEncryptionPublicKeyParameters[nrOperators],
+                new EncryptedData("null", "null"),
+                new datatypes.values.EncryptedNonces[0]);
 
-        DataQuery dataQuery = DataQuery.createInstance(
-                id,
-                DataQuerySettings.createInstance(
-                        nrOperators,
-                        endTime
-                ),
-                DataQueryResult.createInstance(0),
-                ipfsFile
-        );
+        DataQuery dataQuery = DataQuery.createInstance(id, DataQuerySettings.createInstance(nrOperators, duration), ipfsFile);
 
         byte[] serDataQuery = DataQuery.serialize(dataQuery);
-        stub.putState(id, serDataQuery);
         stub.setEvent("StartQuery", serDataQuery);
-        return new String(serDataQuery);
+        stub.putState(id, serDataQuery);
+        return serDataQuery;
     }
 
     /**
-     * Add the result of the data query process.
+     * Sets the data and number of participants, and adds the respective nonce of the operator. If the data
+     * and number of participants is already set, checks if it corresponds to the provided data and number
+     * of participants. If this is not the case, sets the inconsistency flag of data query. If all
+     * operators have added their nonces, the state of the DataQuery is set to done and a corresponding
+     * event is set. Throws an exception if the state of the process is not waiting, or if the data query
+     * process does not exist.
      *
      * @param ctx            the transaction context.
      * @param id             the id of the data query process.
-     * @param cipherData     the ciphertext of the data plus nonces encrypted with paillier.
-     * @param exponent       the exponent of the ciphertext of the data encrypted with paillier.
-     * @param cipherNonce    the ciphertext of the nonces encrypted using a post-quantum encryption scheme.
      * @param nrParticipants the number of participants in the data aggregation process.
      * @return the DataQuery object as a String.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String AddResult(Context ctx, String id, String cipherData, String exponent, String cipherNonce,
-                            int nrParticipants) {
-        boolean first = false;
+    public byte[] AddResult(Context ctx, String id, int nrParticipants) {
         ChaincodeStub stub = retrieveStub(ctx, id);
+        Map<String, byte[]> map = stub.getTransient();
         DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
 
         if (!dataQuery.isWaiting())
             throw new ChaincodeException(String.format("Data query, %s, is not waiting", id));
 
-        DataQueryResult res = dataQuery.getResult();
-        if (res == null) {
-            first = true;
-            res = dataQuery.setResult(DataQueryResult.createInstance(
-                    new EncryptedData(cipherData, exponent),
-                    new EncryptedNonces(new EncryptedNonce[dataQuery.getSettings().getNrOperators()]),
-                    nrParticipants)).getResult();
-        } else if ((!res.getCipherData().getData().equals(cipherData))
-                || (!res.getCipherData().getExponent().equals(exponent))
-                || res.getNrParticipants() != nrParticipants)
-            res.setIncFlag();
-        res.addToCipherNonces(EncryptedNonce.deserialise(cipherNonce));
+        IPFSFile ipfsFile = dataQuery.getIpfsFile();
+        EncryptedData encData = EncryptedData.deserialize(new String(map.get("data")));
+
+        if (ipfsFile.getData().getData().equals("null")) {
+            dataQuery.getIpfsFile().setData(encData);
+        } else if (!ipfsFile.getData().getData().equals(encData.getData())
+                || !ipfsFile.getData().getExponent().equals(encData.getExponent())
+                || dataQuery.getIpfsFile().getNonces().length != nrParticipants)
+            dataQuery.setIncFlag();
+        ipfsFile.addNonces(EncryptedNonces.deserialize(map.get("nonces")));
 
         byte[] serDataQuery;
-        if (res.getCipherNonces().isFull()) {
+        if (ipfsFile.getNonces().length == nrParticipants) {
             dataQuery.setDone();
             serDataQuery = DataQuery.serialize(dataQuery);
             stub.setEvent("DoneQuery", serDataQuery);
-            stub.putState(id, serDataQuery);
-            return new String(serDataQuery);
         } else serDataQuery = DataQuery.serialize(dataQuery);
 
-        stub.setEvent("ResultQuery", serDataQuery);
         stub.putState(id, serDataQuery);
-        return new String(serDataQuery);
+        return serDataQuery;
     }
 
     /**
-     * Closes the data query associated with the id.
+     * Sets state of the data query associated with the corresponding id to closed. Throws an
+     * exception if the data query process already had the closed state or if the corresponding
+     * data query process does not exist.
      *
      * @param ctx the transaction context.
      * @param id  the unique id of the data query.
@@ -155,29 +121,23 @@ public class DataQueryContract implements ContractInterface {
     }
 
     /**
-     * The data query is retrieved.
+     * The data query process corresponding to the id is retrieved from the world state. Throws
+     * an exception if the corresponding data query process does not exist.
      *
      * @param ctx the transaction context.
      * @param id  the unique id of the data query.
      * @return the data query.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String RetrieveDataQuery(Context ctx, String id) {
+    public byte[] RetrieveDataQuery(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
-        DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
-
-        if (dataQuery.isWaiting())
-            throw new ChaincodeException(String.format("The data query, %s, is waiting so cannot be retrieved", id));
-        if (dataQuery.isDone())
-            dataQuery.setClosed();
-
-        byte[] serDataQuery = DataQuery.serialize(dataQuery);
-        stub.putState(id, serDataQuery);
-        return new String(serDataQuery);
+        return stub.getState(id);
     }
 
     /**
-     * The data query is removed.
+     * The data query corresponding to the id is removed from the world state and the data query
+     * is returned. The event RemoveQuery is also set in the transaction. Throws an exception
+     * if the corresponding data query process does not exist.
      *
      * @param ctx the transaction context.
      * @param id  the unique id of the data query.

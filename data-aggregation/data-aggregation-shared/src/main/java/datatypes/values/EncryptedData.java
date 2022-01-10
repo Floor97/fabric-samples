@@ -2,8 +2,8 @@ package datatypes.values;
 
 public class EncryptedData {
 
-    private final String data;
-    private final String exponent;
+    private String data;
+    private String exponent;
 
     public EncryptedData(String data, String exponent) {
         this.data = data;
@@ -23,8 +23,16 @@ public class EncryptedData {
         return data;
     }
 
+    public void setData(String data) {
+        this.data = data;
+    }
+
     public String getExponent() {
         return exponent;
+    }
+
+    public void setExponent(String exponent) {
+        this.exponent = exponent;
     }
 
     @Override

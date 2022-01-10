@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public interface KeyStore {
@@ -36,7 +37,11 @@ public interface KeyStore {
         return pubKey + ":" + stParams;
     }
 
-    static NTRUEncryptionPublicKeyParameters pqStringToPubKey(String str) {
+    static byte[] pqPubKeyToBytes(NTRUEncryptionPublicKeyParameters pk) {
+        return (pqPubKeyToString(pk)).getBytes(StandardCharsets.UTF_8);
+    }
+
+    static NTRUEncryptionPublicKeyParameters pqToPubKey(String str) {
         String[] parts = str.split(":", 2);
         byte[] pubKey = Base64.getDecoder().decode(parts[0]);
         byte[] stParams = Base64.getDecoder().decode(parts[1]);
@@ -49,5 +54,9 @@ public interface KeyStore {
         }
 
         return new NTRUEncryptionPublicKeyParameters(pubKey, params);
+    }
+
+    static NTRUEncryptionPublicKeyParameters pqToPubKey(byte[] str) {
+        return KeyStore.pqToPubKey(new String(str));
     }
 }

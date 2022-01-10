@@ -1,18 +1,21 @@
 package datatypes.values;
 
+import applications.KeyStore;
 import io.ipfs.multihash.Multihash;
+import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.stream.Collectors;
 
 public class IPFSFile {
 
     private Multihash hash;
     private String paillierKey;
-    private byte[] postqKey;
-    private byte[][] operatorKeys;
+    private NTRUEncryptionPublicKeyParameters postqKey;
+    private NTRUEncryptionPublicKeyParameters[] operatorKeys;
     private EncryptedData data;
     private EncryptedNonces[] nonces;
 
@@ -20,13 +23,24 @@ public class IPFSFile {
 
     }
 
-    public IPFSFile(Multihash hash, String paillierKey, byte[] postqKey, byte[][] operatorKeys, EncryptedData data, EncryptedNonces[] nonces) {
+    public IPFSFile(Multihash hash, String paillierKey, NTRUEncryptionPublicKeyParameters postqKey,
+                    NTRUEncryptionPublicKeyParameters[] operatorKeys, EncryptedData data, EncryptedNonces[] nonces) {
         this.hash = hash;
         this.paillierKey = paillierKey;
         this.postqKey = postqKey;
         this.operatorKeys = operatorKeys;
         this.data = data;
         this.nonces = nonces;
+    }
+
+    public IPFSFile(String paillierKey, NTRUEncryptionPublicKeyParameters postqKey,
+                    NTRUEncryptionPublicKeyParameters[] operatorKeys, EncryptedData data, EncryptedNonces[] nonces) {
+        this.paillierKey = paillierKey;
+        this.postqKey = postqKey;
+        this.operatorKeys = operatorKeys;
+        this.data = data;
+        this.nonces = nonces;
+        this.setHash(IPFSConnection.getInstance().addFile(this));
     }
 
     public IPFSFile(Multihash hash) {
@@ -55,12 +69,12 @@ public class IPFSFile {
     public static IPFSFile deserialize(String file, int nrOperators, int nrParticipants) {
         String[] parts = file.split("\n", 5);
 
-        byte[] postqKey = Base64.getDecoder().decode(parts[1]);
+        NTRUEncryptionPublicKeyParameters postqKey = KeyStore.pqToPubKey(parts[1]);
 
         String[] strOpkeys = parts[2].substring(1, parts[2].length() - 2).split(",", nrOperators);
-        byte[][] opKeys = new byte[strOpkeys.length][];
+        NTRUEncryptionPublicKeyParameters[] opKeys = new NTRUEncryptionPublicKeyParameters[strOpkeys.length];
         for (int i = 0; i < strOpkeys.length; i++)
-            opKeys[i] = Base64.getDecoder().decode(strOpkeys[i]);
+            opKeys[i] = KeyStore.pqToPubKey(strOpkeys[i]);
 
         String[] noncesParts = parts[5].substring(3, parts[5].length() - 3).split("]],\\[\\[]", nrOperators);
         EncryptedNonces[] nonces = new EncryptedNonces[nrParticipants];
@@ -80,14 +94,14 @@ public class IPFSFile {
     public static IPFSFile deserialize(String file) {
         String[] parts = file.split("\n", 5);
 
-        byte[] postqKey = Base64.getDecoder().decode(parts[1]);
+        NTRUEncryptionPublicKeyParameters postqKey = KeyStore.pqToPubKey(parts[1]);
 
         String[] strOpkeys = parts[2].substring(1, parts[2].length() - 2).split(",");
-        byte[][] opKeys = new byte[strOpkeys.length][];
+        NTRUEncryptionPublicKeyParameters[] opKeys = new NTRUEncryptionPublicKeyParameters[strOpkeys.length];
         for (int i = 0; i < strOpkeys.length; i++)
-            opKeys[i] = Base64.getDecoder().decode(strOpkeys[i]);
+            opKeys[i] = KeyStore.pqToPubKey(strOpkeys[i]);
 
-        String[] noncesParts = parts[5].substring(3, parts[5].length() - 3).split("]],\\[\\[]");
+        String[] noncesParts = parts[5].substring(3, parts[5].length() - 3).split("]],\\[\\[]", opKeys.length);
         EncryptedNonces[] nonces = new EncryptedNonces[noncesParts.length];
         for (int i = 0, noncesPartsLength = noncesParts.length; i < noncesPartsLength; i++) {
             nonces[i] = new EncryptedNonces(Arrays.stream(noncesParts[i].split("],\\[", opKeys.length)).map(Base64.getDecoder()::decode).toArray(byte[][]::new));
@@ -105,17 +119,29 @@ public class IPFSFile {
     public static byte[] serialize(IPFSFile file) {
         StringBuilder builder = new StringBuilder();
         builder.append("\n").append(file.paillierKey)
-                .append("\n").append(file.postqKey)
-                .append("\n").append(Arrays.toString(file.getOperatorKeys()))
+                .append("\n").append(KeyStore.pqPubKeyToString(file.postqKey))
+                .append("\n").append(Arrays.stream(file.getOperatorKeys()).map(KeyStore::pqPubKeyToString).collect(Collectors.toList()))
                 .append("\n").append(file.data)
                 .append("\n[");
+
         for (int i = 0; i < file.nonces.length; i++) {
             builder.append(file.nonces[i].toString());
             if (i != file.nonces.length - 1)
                 builder.append(",");
         }
         builder.append("]");
+
         return builder.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    public void addNonces(EncryptedNonces newNonces) {
+        EncryptedNonces[] encryptedNonces = this.nonces;
+        for (int i = 0; i < encryptedNonces.length; i++) {
+            if (!this.nonces[i].isFull()) {
+                this.nonces[i] = newNonces;
+                break;
+            }
+        }
     }
 
     public String getPaillierKey() {
@@ -127,20 +153,20 @@ public class IPFSFile {
         return this;
     }
 
-    public byte[] getPostqKey() {
+    public NTRUEncryptionPublicKeyParameters getPostqKey() {
         return postqKey;
     }
 
-    public IPFSFile setPostqKey(byte[] postqKey) {
+    public IPFSFile setPostqKey(NTRUEncryptionPublicKeyParameters postqKey) {
         this.postqKey = postqKey;
         return this;
     }
 
-    public byte[][] getOperatorKeys() {
+    public NTRUEncryptionPublicKeyParameters[] getOperatorKeys() {
         return operatorKeys;
     }
 
-    public IPFSFile setOperatorKeys(byte[][] operatorKeys) {
+    public IPFSFile setOperatorKeys(NTRUEncryptionPublicKeyParameters[] operatorKeys) {
         this.operatorKeys = operatorKeys;
         return this;
     }
