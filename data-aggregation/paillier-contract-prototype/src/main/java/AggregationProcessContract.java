@@ -2,8 +2,6 @@ import com.n1analytics.paillier.EncryptedNumber;
 import com.n1analytics.paillier.PaillierContext;
 import com.n1analytics.paillier.PaillierPublicKey;
 import datatypes.aggregationprocess.AggregationProcess;
-import datatypes.aggregationprocess.AggregationProcessData;
-import datatypes.aggregationprocess.AggregationProcessKeys;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonces;
 import org.hyperledger.fabric.contract.Context;
@@ -39,10 +37,8 @@ public class AggregationProcessContract implements ContractInterface, Contract {
             throw new ChaincodeException(String.format("Aggregation process, %s, already exists", id));
         }
 
-        AggregationProcess aggregationProcess = AggregationProcess.createInstance(
+        AggregationProcess aggregationProcess = new AggregationProcess(
                 id,
-                AggregationProcessKeys.createInstance(paillierModulus, nrOperators),
-                AggregationProcessData.createInstance(null, nrOperators)
         );
         aggregationProcess.getKeystore().addOperatorKey(postQuantumPk);
 

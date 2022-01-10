@@ -2,37 +2,20 @@ package datatypes.dataquery;
 
 public class DataQuerySettings {
 
-    private int nrOperators;
-    private long duration;
+    private final int nrOperators;
+    private final long duration;
+
+    public DataQuerySettings(int nrOperators, long duration) {
+        this.nrOperators = nrOperators;
+        this.duration = duration;
+    }
 
     public int getNrOperators() {
         return nrOperators;
     }
 
-    public DataQuerySettings setNrOperators(int nrOperators) {
-        this.nrOperators = nrOperators;
-        return this;
-    }
-
     public long getDuration() {
         return duration;
-    }
-
-    public DataQuerySettings setDuration(long duration) {
-        this.duration = duration;
-        return this;
-    }
-
-    /**
-     * Factory method for DataQuerySettings.
-     * @param nrOperators the number of operators used in the process.
-     * @param duration the end time of the process.
-     * @return a new DataQuerySettings object.
-     */
-    public static DataQuerySettings createInstance(int nrOperators, long duration) {
-        return new DataQuerySettings()
-                .setNrOperators(nrOperators)
-                .setDuration(duration);
     }
 
     @Override

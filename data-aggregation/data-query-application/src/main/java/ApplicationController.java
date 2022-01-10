@@ -69,8 +69,8 @@ public class ApplicationController {
                 case "DoneQuery":
                     try {
                         DataQuery dataQuery = DataQuery.deserialize(contractEvent.getPayload().get());
-                        EncryptedData data = dataQuery.getResult().getCipherData();
-                        EncryptedNonces nonces = dataQuery.getResult().getCipherNonces();
+                        EncryptedData data = dataQuery.getIpfsFile().getData();
+                        EncryptedNonces nonces = dataQuery.getIpfsFile().getNonces();
                         DataQueryKeyStore keystore = ApplicationModel.getInstance().getKey(dataQuery.getId());
                         BigInteger dataAndNonces = PaillierEncryption.decrypt(data, keystore.getPaillierKeys());
                         try {

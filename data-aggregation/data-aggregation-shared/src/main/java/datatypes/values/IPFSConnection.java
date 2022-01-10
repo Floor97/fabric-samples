@@ -53,6 +53,6 @@ public class IPFSConnection {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return IPFSFile.deserialize(file);
+        return IPFSFile.deserialize(file, -1);
     }
 }

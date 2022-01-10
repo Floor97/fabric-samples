@@ -8,7 +8,6 @@ import org.json.JSONObject;
 
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Base64;
 
 public class EncryptedNonces {
 
@@ -28,21 +27,25 @@ public class EncryptedNonces {
         setPointer();
     }
 
-    public void addNonce(EncryptedNonce nonce) {
-        if(isFull()) throw new RuntimeException("Nonces are full");
-        nonces[pointer++] = nonce;
+    public EncryptedNonce[] getNonces() {
+        return nonces;
     }
 
-    private void setPointer() {
-        this.pointer = 0;
-        for(EncryptedNonce nonce : nonces) {
-            if(nonce == null) break;
-            this.pointer++;
-        }
+    public void addNonce(EncryptedNonce nonce) {
+        if (isFull()) throw new RuntimeException("Nonces are full");
+        nonces[pointer++] = nonce;
     }
 
     public boolean isFull() {
         return this.pointer == nonces.length;
+    }
+
+    private void setPointer() {
+        this.pointer = 0;
+        for (EncryptedNonce nonce : nonces) {
+            if (nonce == null) break;
+            this.pointer++;
+        }
     }
 
     public static String serialize(EncryptedNonces encryptedNonces) {
@@ -51,7 +54,7 @@ public class EncryptedNonces {
             strEncryptedNonces[i] = EncryptedNonce.serialize(encryptedNonces.nonces[i]);
         }
         JSONObject json = new JSONObject();
-        json.put("nonces", strEncryptedNonces);
+        json.put("nonces", strEncryptedNonces); //todo check redundant
         return json.toString();
     }
 
@@ -64,44 +67,27 @@ public class EncryptedNonces {
 
         String[] encNonces = json.getJSONArray("nonces").toList().toArray(new String[0]);
         EncryptedNonce[] nonces = new EncryptedNonce[encNonces.length];
-        for(int i = 0; i < nonces.length; i++) {
-            nonces[i] = new EncryptedNonce(Base64.getDecoder().decode(encNonces[i]));
+        for (int i = 0; i < nonces.length; i++) {
+            nonces[i] = EncryptedNonce.deserialize(encNonces[i]);
         }
         return new EncryptedNonces(nonces);
     }
 
     public static EncryptedNonce condenseNonces(AsymmetricCipherKeyPair kp, EncryptedNonces encNonces, String postQuantumPk) throws InvalidCipherTextException {
         BigInteger summedNonce = new BigInteger("0");
-        for(EncryptedNonce encNonce: encNonces.getNonces()) {
-            byte[] encNonce2 = encNonce.getNonce();
-            summedNonce = summedNonce.add(new BigInteger(NTRUEncryption.decrypt(encNonce2, kp)));
-        }
+        for (EncryptedNonce encNonce : encNonces.getNonces())
+            summedNonce = summedNonce.add(new BigInteger(NTRUEncryption.decrypt(encNonce.getNonce(), kp)));
 
         return new EncryptedNonce(NTRUEncryption.encrypt(summedNonce.toByteArray(), postQuantumPk));
-    }
-
-    public EncryptedNonce[] getNonces() {
-        return nonces;
     }
 
     public static EncryptedNonces getOperatorNonces(AggregationProcess aggregationProcess, int index) {
         EncryptedNonces[] allNonces = aggregationProcess.getIpfsFile().getNonces();
         EncryptedNonces operatorNonces = new EncryptedNonces(new EncryptedNonce[allNonces.length]);
 
-        for(EncryptedNonces partNonces: allNonces)
+        for (EncryptedNonces partNonces : allNonces)
             operatorNonces.addNonce(partNonces.getNonces()[index]);
 
         return operatorNonces;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder build = new StringBuilder("[");
-        for (int i = 0; i < nonces.length; i++) {
-            build.append(nonces[i].toString());
-            if(i != nonces.length - 1) build.append(",");
-        }
-        build.append("]");
-        return build.toString();
     }
 }

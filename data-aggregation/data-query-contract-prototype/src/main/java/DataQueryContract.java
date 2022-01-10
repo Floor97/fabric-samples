@@ -39,14 +39,15 @@ public class DataQueryContract implements ContractInterface {
         if (DataQueryExists(ctx, id))
             throw new ChaincodeException(String.format("Data query, %s, already exists", id));
 
-        IPFSFile ipfsFile = new IPFSFile(
+        IPFSFile ipfsFile = new IPFSFile.IPFSFileBuilder(
                 new String(map.get("paillier")),
-                KeyStore.pqToPubKey(map.get("post-quantum")),
-                new NTRUEncryptionPublicKeyParameters[nrOperators],
-                new EncryptedData("null", "null"),
-                new datatypes.values.EncryptedNonces[0]);
+                KeyStore.pqToPubKey(map.get("post-quantum")))
+                .setOperatorKeys(new NTRUEncryptionPublicKeyParameters[nrOperators])
+                .setData(new EncryptedData("null", "null"))
+                .setNonces(new datatypes.values.EncryptedNonces[0])
+                .build();
 
-        DataQuery dataQuery = DataQuery.createInstance(id, DataQuerySettings.createInstance(nrOperators, duration), ipfsFile);
+        DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, duration), ipfsFile);
 
         byte[] serDataQuery = DataQuery.serialize(dataQuery);
         stub.setEvent("StartQuery", serDataQuery);

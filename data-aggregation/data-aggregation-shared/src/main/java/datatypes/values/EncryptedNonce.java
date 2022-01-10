@@ -10,7 +10,7 @@ public class EncryptedNonce {
         this.nonce = nonce;
     }
 
-    public static EncryptedNonce deserialise(String serNonce) {
+    public static EncryptedNonce deserialize(String serNonce) {
         return new EncryptedNonce(Base64.getDecoder().decode(serNonce));
     }
 
