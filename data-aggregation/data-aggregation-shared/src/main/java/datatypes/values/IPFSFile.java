@@ -99,6 +99,10 @@ public class IPFSFile {
         return operatorKeys;
     }
 
+    public boolean isFull() {
+        return addOperatorKey(null) == -1;
+    }
+
     public int addOperatorKey(NTRUEncryptionPublicKeyParameters newKey) {
         for (int i = 0; i < operatorKeys.length; i++) {
             if (this.operatorKeys[i] == null) {

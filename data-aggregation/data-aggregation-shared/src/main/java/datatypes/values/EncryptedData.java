@@ -10,12 +10,16 @@ public class EncryptedData {
         this.exponent = exponent;
     }
 
-    public static String serialize(EncryptedData data) {
-        return data.data + ":" + data.exponent;
+    public static String serialize(EncryptedData encData) {
+        return encData.data + ":" + encData.exponent;
     }
 
-    public static EncryptedData deserialize(String data) {
-        String[] parts = data.split(":", 2);
+    public static EncryptedData deserialize(byte[] encData) {
+        return EncryptedData.deserialize(new String(encData));
+    }
+
+    public static EncryptedData deserialize(String encData) {
+        String[] parts = encData.split(":", 2);
         return new EncryptedData(parts[0], parts[1]);
     }
 
@@ -23,16 +27,18 @@ public class EncryptedData {
         return data;
     }
 
-    public void setData(String data) {
+    public EncryptedData setData(String data) {
         this.data = data;
+        return this;
     }
 
     public String getExponent() {
         return exponent;
     }
 
-    public void setExponent(String exponent) {
+    public EncryptedData setExponent(String exponent) {
         this.exponent = exponent;
+        return this;
     }
 
     @Override

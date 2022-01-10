@@ -32,11 +32,11 @@ public class DataQueryContract implements ContractInterface {
      * @return the new data query process as a String.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public byte[] StartQuery(Context ctx, String id, int nrOperators, long duration) {
+    public byte[] Start(Context ctx, String id, int nrOperators, long duration) {
         ChaincodeStub stub = ctx.getStub();
         Map<String, byte[]> map = stub.getTransient();
 
-        if (DataQueryExists(ctx, id))
+        if (Exists(ctx, id))
             throw new ChaincodeException(String.format("Data query, %s, already exists", id));
 
         IPFSFile ipfsFile = new IPFSFile.IPFSFileBuilder(
@@ -69,7 +69,7 @@ public class DataQueryContract implements ContractInterface {
      * @return the DataQuery object as a String.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public byte[] AddResult(Context ctx, String id, int nrParticipants) {
+    public byte[] Add(Context ctx, String id, int nrParticipants) {
         ChaincodeStub stub = retrieveStub(ctx, id);
         Map<String, byte[]> map = stub.getTransient();
         DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
@@ -130,7 +130,7 @@ public class DataQueryContract implements ContractInterface {
      * @return the data query.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public byte[] RetrieveDataQuery(Context ctx, String id) {
+    public byte[] Retrieve(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
         return stub.getState(id);
     }
@@ -144,7 +144,7 @@ public class DataQueryContract implements ContractInterface {
      * @param id  the unique id of the data query.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String RemoveDataQuery(Context ctx, String id) {
+    public String Remove(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
         byte[] serDataQuery = stub.getState(id);
         stub.delState(id);
@@ -160,7 +160,7 @@ public class DataQueryContract implements ContractInterface {
      * @return boolean indicating the existence of the data query.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public boolean DataQueryExists(Context ctx, final String id) {
+    public boolean Exists(Context ctx, final String id) {
         String assetJSON = ctx.getStub().getStringState(id);
         return (assetJSON != null && !assetJSON.isEmpty());
     }
@@ -174,7 +174,7 @@ public class DataQueryContract implements ContractInterface {
      */
     private ChaincodeStub retrieveStub(Context ctx, String key) {
         ChaincodeStub stub = ctx.getStub();
-        if (!DataQueryExists(ctx, key))
+        if (!Exists(ctx, key))
             throw new ChaincodeException(String.format("Data query, %s, does not exist", key));
 
         return stub;
