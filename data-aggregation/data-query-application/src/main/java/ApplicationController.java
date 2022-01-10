@@ -28,7 +28,7 @@ public class ApplicationController {
         IdFactory.getInstance().setAskerName(scan.next());
 
         while (true) {
-            System.out.println("Please select a transaction: exists, start, add, close, retrieve or remove");
+            System.out.println("Please select a transaction: exists, start, close, retrieve or remove");
             try {
                 switch (scan.next()) {
                     case "exists":
@@ -37,9 +37,6 @@ public class ApplicationController {
                     case "start":
                         Pair<String, DataQueryKeyStore> storePair = QueryTransactions.start(contract);
                         ApplicationModel.getInstance().addKey(storePair.getP1(), storePair.getP2());
-                        break;
-                    case "add":
-                        QueryTransactions.add(contract);
                         break;
                     case "close":
                         QueryTransactions.close(contract);
@@ -65,30 +62,26 @@ public class ApplicationController {
 
     private static void setContractListener(Contract contract) {
         Consumer<ContractEvent> consumer = contractEvent -> {
-            switch (contractEvent.getName()) {
-                case "DoneQuery":
+            if (!"DoneQuery".equals(contractEvent.getName())) return;
+                try {
+                    DataQuery dataQuery = DataQuery.deserialize(contractEvent.getPayload().get());
+                    EncryptedData data = dataQuery.getIpfsFile().getData();
+                    EncryptedNonces[] nonces = dataQuery.getIpfsFile().getNonces();
+                    DataQueryKeyStore keystore = ApplicationModel.getInstance().getKey(dataQuery.getId());
+                    BigInteger dataAndNonces = PaillierEncryption.decrypt(data, keystore.getPaillierKeys());
+
                     try {
-                        DataQuery dataQuery = DataQuery.deserialize(contractEvent.getPayload().get());
-                        EncryptedData data = dataQuery.getIpfsFile().getData();
-                        EncryptedNonces nonces = dataQuery.getIpfsFile().getNonces();
-                        DataQueryKeyStore keystore = ApplicationModel.getInstance().getKey(dataQuery.getId());
-                        BigInteger dataAndNonces = PaillierEncryption.decrypt(data, keystore.getPaillierKeys());
-                        try {
-                            for (EncryptedNonce nonce : nonces.getNonces()) {
-                                byte[] decryptedNonce = NTRUEncryption.decrypt(nonce.getNonce(), keystore.getPostQuantumKeys());
-                                dataAndNonces = dataAndNonces.subtract(new BigInteger(new String(decryptedNonce)));
-                            }
-                        } catch (InvalidCipherTextException e) {
-                            e.printStackTrace();
+                        for (EncryptedNonces nonce : nonces) {
+                            byte[] decryptedNonce = NTRUEncryption.decrypt(nonce.getNonces(), keystore.getPostQuantumKeys());//todo fix nonces
+                            dataAndNonces = dataAndNonces.subtract(new BigInteger(new String(decryptedNonce)));
                         }
-                        System.out.println("Result of " + dataQuery.getId() + " is " + dataAndNonces.toString());
-                    } catch (Exception e) {
+                    } catch (InvalidCipherTextException e) {
                         e.printStackTrace();
                     }
-                    break;
-                default:
-                    System.out.println("Event occurred: " + contractEvent.getName());
-            }
+                    System.out.println("Result of " + dataQuery.getId() + " is " + dataAndNonces.toString());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
         };
         contract.addContractListener(consumer);
     }

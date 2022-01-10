@@ -11,54 +11,41 @@ import org.hyperledger.fabric.gateway.ContractException;
 import shared.Pair;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
 public class QueryTransactions {
-    private static Scanner scan = new Scanner(System.in);
+    private static final Scanner scan = new Scanner(System.in);
 
     public static Pair<String, DataQueryKeyStore> start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
-        DataQueryKeyStore newKeys = DataQueryKeyStore.createInstance();
+        String id = IdFactory.getInstance().createId();
+        DataQueryKeyStore newKeys = new DataQueryKeyStore();
         Pair<PaillierPublicKey, NTRUEncryptionPublicKeyParameters> pubkeys = newKeys.getPublicKeys();
 
-        DataQuery dataQuery = DataQuery.deserialize(
-                contract.submitTransaction(
-                        "StartQuery",
-                        IdFactory.getInstance().createId(),
-                        KeyStore.paPubKeyToString(pubkeys.getP1()),
-                        KeyStore.pqPubKeyToString(pubkeys.getP2()),
-                        scanNextLine("Transaction Start selected\nNumber of Operators: "),
-                        scanNextLine("End Time: ")
-                )
-        );
-        return new Pair<>(dataQuery.getId(), newKeys);
-    }
+        Map<String, byte[]> trans = new HashMap<String, byte[]>();
+        trans.put("paillier", KeyStore.paPubKeyToString(pubkeys.getP1()).getBytes(StandardCharsets.UTF_8));
+        trans.put("post-quantum", KeyStore.pqPubKeyToBytes(pubkeys.getP2()));
 
-    public static void add(Contract contract) throws ContractException, InterruptedException, TimeoutException {
-        //todo check if can be made easier to fill in
-        printResponse(
-                contract.submitTransaction(
-                        "AddResult",
-                        scanNextLine("Transaction Add selected\nID: "),
-                        scanNextLine("Result: "),
-                        scanNextLine("Exponent: "),
-                        scanNextLine("Nonce: "),
-                        scanNextLine("Number of Participants: "))
-        );
+        contract.createTransaction("Start").setTransient(trans).submit(
+                id,
+                scanNextLine("Transaction Start selected\nNumber of Operators: "),
+                scanNextLine("Duration: ")
+                );
+        return new Pair<>(id, newKeys);
     }
 
     public static void close(Contract contract) throws ContractException, InterruptedException, TimeoutException {
-        printResponse(
-                contract.submitTransaction(
-                        "Close",
-                        scanNextLine("Transaction Close selected\nID: ")
-                )
+        contract.submitTransaction(
+                "Close",
+                scanNextLine("Transaction Close selected\nID: ")
         );
     }
 
     public static void retrieve(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         printResponse(
-                contract.submitTransaction(
+                contract.evaluateTransaction(
                         "RetrieveDataQuery",
                         scanNextLine("Transaction Retrieve selected\nID: ")
                 )
@@ -75,7 +62,7 @@ public class QueryTransactions {
     }
 
     public static void exists(Contract contract) throws ContractException, InterruptedException, TimeoutException {
-        byte[] responseExists = contract.submitTransaction(
+        byte[] responseExists = contract.evaluateTransaction(
                 "DataQueryExists",
                 scanNextLine("Transaction Exists selected\nID: ")
         );

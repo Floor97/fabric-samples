@@ -14,37 +14,32 @@ public class DataQueryKeyStore implements KeyStore {
     private PaillierPrivateKey paillierKeys;
     private AsymmetricCipherKeyPair postQuantumKeys;
 
+    public DataQueryKeyStore() {
+        setPaillierKeys();
+        setPostQuantumKeys();
+    }
+
     public PaillierPrivateKey getPaillierKeys() {
         return this.paillierKeys;
     }
 
-    public DataQueryKeyStore setPaillierKeys() {
-        paillierKeys = PaillierPrivateKey.create(2048);
-        return this;
+    private void setPaillierKeys() {
+        this.paillierKeys = PaillierPrivateKey.create(2048);
     }
 
     public AsymmetricCipherKeyPair getPostQuantumKeys() {
         return this.postQuantumKeys;
     }
 
-    public DataQueryKeyStore setPostQuantumKeys() {
+    private void setPostQuantumKeys() {
         NTRUEncryptionKeyGenerationParameters params = NTRUEncryptionKeyGenerationParameters.APR2011_743_FAST.clone();
         params.polyType = NTRUParameters.TERNARY_POLYNOMIAL_TYPE_SIMPLE;
         NTRUEncryptionKeyPairGenerator ntruGen = new NTRUEncryptionKeyPairGenerator();
         ntruGen.init(params);
         this.postQuantumKeys = ntruGen.generateKeyPair();
-        return this;
     }
 
     public Pair<PaillierPublicKey, NTRUEncryptionPublicKeyParameters> getPublicKeys() {
-        return new Pair(paillierKeys.getPublicKey(), postQuantumKeys.getPublic());
+        return new Pair<>(paillierKeys.getPublicKey(), (NTRUEncryptionPublicKeyParameters) postQuantumKeys.getPublic());
     }
-
-    public static DataQueryKeyStore createInstance() {
-        return new DataQueryKeyStore().setPaillierKeys().setPostQuantumKeys();
-    }
-
-
-
-
 }

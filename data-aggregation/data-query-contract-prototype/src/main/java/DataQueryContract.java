@@ -29,19 +29,18 @@ public class DataQueryContract implements ContractInterface {
      * @param id          the id of the new data query process.
      * @param nrOperators the number of operators used in the process.
      * @param duration    the end time for the process.
-     * @return the new data query process as a String.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public byte[] Start(Context ctx, String id, int nrOperators, long duration) {
+    public void Start(Context ctx, String id, int nrOperators, long duration) {
         ChaincodeStub stub = ctx.getStub();
-        Map<String, byte[]> map = stub.getTransient();
+        Map<String, byte[]> trans = stub.getTransient();
 
         if (Exists(ctx, id))
             throw new ChaincodeException(String.format("Data query, %s, already exists", id));
 
         IPFSFile ipfsFile = new IPFSFile.IPFSFileBuilder(
-                new String(map.get("paillier")),
-                KeyStore.pqToPubKey(map.get("post-quantum")))
+                new String(trans.get("paillier")),
+                KeyStore.pqToPubKey(trans.get("post-quantum")))
                 .setOperatorKeys(new NTRUEncryptionPublicKeyParameters[nrOperators])
                 .setData(new EncryptedData("null", "null"))
                 .setNonces(new datatypes.values.EncryptedNonces[0])
@@ -52,7 +51,6 @@ public class DataQueryContract implements ContractInterface {
         byte[] serDataQuery = DataQuery.serialize(dataQuery);
         stub.setEvent("StartQuery", serDataQuery);
         stub.putState(id, serDataQuery);
-        return serDataQuery;
     }
 
     /**
@@ -108,7 +106,7 @@ public class DataQueryContract implements ContractInterface {
      * @param id  the unique id of the data query.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String Close(Context ctx, String id) {
+    public void Close(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
 
         DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
@@ -118,7 +116,6 @@ public class DataQueryContract implements ContractInterface {
         dataQuery.setClosed();
         byte[] serDataQuery = DataQuery.serialize(dataQuery);
         stub.putState(id, serDataQuery);
-        return new String(serDataQuery);
     }
 
     /**
@@ -143,13 +140,13 @@ public class DataQueryContract implements ContractInterface {
      * @param ctx the transaction context.
      * @param id  the unique id of the data query.
      */
-    @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String Remove(Context ctx, String id) {
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
+    public byte[] Remove(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
         byte[] serDataQuery = stub.getState(id);
         stub.delState(id);
         stub.setEvent("RemoveQuery", serDataQuery);
-        return new String(serDataQuery);
+        return serDataQuery;
     }
 
     /**
