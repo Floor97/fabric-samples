@@ -17,6 +17,17 @@ import java.util.concurrent.TimeoutException;
 public class DataQueryTransactions {
     private static final Scanner scan = new Scanner(System.in);
 
+    /**
+     * The Start transaction in the data query contract is submitted. The Paillier and NTRUEncrypt
+     * public keys are sent as transient data. The id, number of operator and time limit are sent
+     * as normal input.
+     * @param contract the data query contract.
+     * @return a Pair object containing the id and the DataQueryKeyStore.
+     * @throws ContractException when an exception occurs in the data query contract. An exception
+     * occurs when the data query asset already exists but is not in selection phase.
+     * @throws InterruptedException thrown by the submit method.
+     * @throws TimeoutException thrown by the submit method.
+     */
     public static Pair<String, DataQueryKeyStore> start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         String id = IdFactory.getInstance().createId();
         DataQueryKeyStore newKeys = new DataQueryKeyStore();
@@ -34,6 +45,14 @@ public class DataQueryTransactions {
         return new Pair<>(id, newKeys);
     }
 
+    /**
+     * The Close transaction in the data query contract is submitted.
+     * @param contract the data query contract.
+     * @throws ContractException when an exception occurs in the data query contract. This occurs
+     * when the data query referenced by the id is already in the closed state.
+     * @throws InterruptedException thrown by the submit method.
+     * @throws TimeoutException thrown by the submit method.
+     */
     public static void close(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         contract.submitTransaction(
                 "Close",
@@ -41,6 +60,14 @@ public class DataQueryTransactions {
         );
     }
 
+    /**
+     * The Retrieve transaction in the data query contract is evaluated.
+     * @param contract the data query contract.
+     * @throws ContractException when an exception occurs in the data query contract. This occurs
+     * when the data query referenced by the id does not exist.
+     * @throws InterruptedException thrown by the submit method.
+     * @throws TimeoutException thrown by the submit method.
+     */
     public static void retrieve(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         printResponse(
                 contract.evaluateTransaction(
@@ -50,6 +77,14 @@ public class DataQueryTransactions {
         );
     }
 
+    /**
+     * The Remove transaction in the data query contract is submitted.
+     * @param contract the data query contract.
+     * @throws ContractException when an exception occurs in the data query contract. This occurs
+     * when the data query referenced by the id is already in the closed state or does not exist.
+     * @throws InterruptedException thrown by the submit method.
+     * @throws TimeoutException thrown by the submit method.
+     */
     public static void remove(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         printResponse(
                 contract.submitTransaction(
@@ -59,7 +94,12 @@ public class DataQueryTransactions {
         );
     }
 
-    public static void exists(Contract contract) throws ContractException, InterruptedException, TimeoutException {
+    /**
+     * The Exists transaction in the data query contract is submitted.
+     * @param contract the data query contract.
+     * @throws ContractException when an exception occurs in the data query contract.
+     */
+    public static void exists(Contract contract) throws ContractException {
         byte[] responseExists = contract.evaluateTransaction(
                 "Exists",
                 scanNextLine("Transaction Exists selected\nID: ")
@@ -68,11 +108,20 @@ public class DataQueryTransactions {
         System.out.printf("Asset exists: %s%n", new String(responseExists, StandardCharsets.UTF_8));
     }
 
+    /**
+     * Helper method that prints the message and sends back the next input on System.in.
+     * @param message the message that will be printed.
+     * @return the next input on System.in.
+     */
     private static String scanNextLine(String message) {
         System.out.print(message);
         return scan.next();
     }
 
+    /**
+     * Helper method that deserializes the response of a transaction and prints it.
+     * @param response the response of a data query contract transaction.
+     */
     private static void printResponse(byte[] response) {
         DataQuery serDataQuery = DataQuery.deserialize(response);
         System.out.println("Response: " + serDataQuery);

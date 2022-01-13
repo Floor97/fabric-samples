@@ -1,10 +1,10 @@
-import applications.KeyStore;
 import datatypes.dataquery.DataQuery;
 import datatypes.dataquery.DataQuerySettings;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonce;
 import datatypes.values.EncryptedNonces;
 import datatypes.values.IPFSFile;
+import encryption.KeyStore;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
