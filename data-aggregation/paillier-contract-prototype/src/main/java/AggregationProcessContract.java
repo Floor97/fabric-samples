@@ -31,8 +31,8 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      * or the StartAggregating event occurs when enough operators participated. Throws an exception
      * if the aggregation already exists but is not in the selection phase.
      *
-     * @param ctx the transaction context.
-     * @param id  the unique id of the aggregation process.
+     * @param ctx      the transaction context.
+     * @param id       the unique id of the aggregation process.
      * @param ipfsHash the unique hash from the data query ipfs file.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
@@ -54,7 +54,8 @@ public class AggregationProcessContract implements ContractInterface, Contract {
             aggregationProcess.setAggregating();
             serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
             stub.setEvent("StartAggregating", serAggregationProcess);
-        } serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
+        }
+        serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
 
         stub.putState(id, serAggregationProcess);
         return index;
@@ -66,8 +67,8 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      * aggregating phase or when the given id does not correspond to a data aggregation process in
      * the world state.
      *
-     * @param ctx        the transaction context.
-     * @param id         the unique id of the aggregation process.
+     * @param ctx the transaction context.
+     * @param id  the unique id of the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void Add(Context ctx, String id) {

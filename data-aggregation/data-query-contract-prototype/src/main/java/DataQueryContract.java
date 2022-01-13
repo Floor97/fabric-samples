@@ -33,15 +33,11 @@ public class DataQueryContract implements ContractInterface {
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void Start(Context ctx, String id, int nrOperators, long duration) {
-        System.out.println("Starting transaction Start");
         ChaincodeStub stub = ctx.getStub();
         Map<String, byte[]> trans = stub.getTransient();
-        System.out.println("Got transient data");
 
         if (Exists(ctx, id))
             throw new ChaincodeException(String.format("Data query, %s, already exists", id));
-
-        System.out.println("id does not exist yet");
 
         IPFSFile ipfsFile = new IPFSFile.IPFSFileBuilder(
                 new String(trans.get("paillier")),
@@ -50,10 +46,7 @@ public class DataQueryContract implements ContractInterface {
                 .setData(new EncryptedData("null", "null"))
                 .setNonces(new datatypes.values.EncryptedNonces[0])
                 .build();
-        System.out.println("Made ipfs file");
-
         DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, duration), ipfsFile);
-        System.out.println("Made dataquery file");
 
         byte[] serDataQuery = DataQuery.serialize(dataQuery);
         stub.setEvent("StartQuery", serDataQuery);
