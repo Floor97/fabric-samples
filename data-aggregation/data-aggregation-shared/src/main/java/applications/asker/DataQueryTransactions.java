@@ -1,12 +1,12 @@
 package applications.asker;
 
-import encryption.KeyStore;
 import com.n1analytics.paillier.PaillierPublicKey;
 import datatypes.dataquery.DataQuery;
+import datatypes.values.Pair;
+import encryption.KeyStore;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
-import datatypes.values.Pair;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -21,12 +21,13 @@ public class DataQueryTransactions {
      * The Start transaction in the data query contract is submitted. The Paillier and NTRUEncrypt
      * public keys are sent as transient data. The id, number of operator and time limit are sent
      * as normal input.
+     *
      * @param contract the data query contract.
      * @return a Pair object containing the id and the DataQueryKeyStore.
-     * @throws ContractException when an exception occurs in the data query contract. An exception
-     * occurs when the data query asset already exists but is not in selection phase.
+     * @throws ContractException    when an exception occurs in the data query contract. An exception
+     *                              occurs when the id is already in use.
      * @throws InterruptedException thrown by the submit method.
-     * @throws TimeoutException thrown by the submit method.
+     * @throws TimeoutException     thrown by the submit method.
      */
     public static Pair<String, DataQueryKeyStore> start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         String id = IdFactory.getInstance().createId();
@@ -41,17 +42,18 @@ public class DataQueryTransactions {
                 id,
                 scanNextLine("Transaction Start selected\nNumber of Operators: "),
                 scanNextLine("Duration: ")
-                );
+        );
         return new Pair<>(id, newKeys);
     }
 
     /**
      * The Close transaction in the data query contract is submitted.
+     *
      * @param contract the data query contract.
-     * @throws ContractException when an exception occurs in the data query contract. This occurs
-     * when the data query referenced by the id is already in the closed state.
+     * @throws ContractException    when an exception occurs in the data query contract. This occurs
+     *                              when the data query referenced by the id is already in the closed state.
      * @throws InterruptedException thrown by the submit method.
-     * @throws TimeoutException thrown by the submit method.
+     * @throws TimeoutException     thrown by the submit method.
      */
     public static void close(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         contract.submitTransaction(
@@ -62,11 +64,12 @@ public class DataQueryTransactions {
 
     /**
      * The Retrieve transaction in the data query contract is evaluated.
+     *
      * @param contract the data query contract.
-     * @throws ContractException when an exception occurs in the data query contract. This occurs
-     * when the data query referenced by the id does not exist.
+     * @throws ContractException    when an exception occurs in the data query contract. This occurs
+     *                              when the data query referenced by the id does not exist.
      * @throws InterruptedException thrown by the submit method.
-     * @throws TimeoutException thrown by the submit method.
+     * @throws TimeoutException     thrown by the submit method.
      */
     public static void retrieve(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         printResponse(
@@ -79,11 +82,12 @@ public class DataQueryTransactions {
 
     /**
      * The Remove transaction in the data query contract is submitted.
+     *
      * @param contract the data query contract.
-     * @throws ContractException when an exception occurs in the data query contract. This occurs
-     * when the data query referenced by the id is already in the closed state or does not exist.
+     * @throws ContractException    when an exception occurs in the data query contract. This occurs
+     *                              when the data query referenced by the id is already in the closed state or does not exist.
      * @throws InterruptedException thrown by the submit method.
-     * @throws TimeoutException thrown by the submit method.
+     * @throws TimeoutException     thrown by the submit method.
      */
     public static void remove(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         printResponse(
@@ -96,6 +100,7 @@ public class DataQueryTransactions {
 
     /**
      * The Exists transaction in the data query contract is submitted.
+     *
      * @param contract the data query contract.
      * @throws ContractException when an exception occurs in the data query contract.
      */
@@ -110,6 +115,7 @@ public class DataQueryTransactions {
 
     /**
      * Helper method that prints the message and sends back the next input on System.in.
+     *
      * @param message the message that will be printed.
      * @return the next input on System.in.
      */
@@ -120,6 +126,7 @@ public class DataQueryTransactions {
 
     /**
      * Helper method that deserializes the response of a transaction and prints it.
+     *
      * @param response the response of a data query contract transaction.
      */
     private static void printResponse(byte[] response) {

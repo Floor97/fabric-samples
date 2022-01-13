@@ -17,6 +17,7 @@ public class IdFactory {
 
     /**
      * Sets the name of the asker and resets the counter.
+     *
      * @param name the name of the asker.
      */
     public void setAskerName(String name) {
@@ -26,6 +27,7 @@ public class IdFactory {
 
     /**
      * A new id is created using the askerName and counter.
+     *
      * @return the new id.
      */
     public String createId() {
@@ -36,10 +38,11 @@ public class IdFactory {
 
     /**
      * Returns the singleton instance of IdFactory.
+     *
      * @return the instance of IdFactory.
      */
     public static IdFactory getInstance() {
-        if(idFactory == null) idFactory = new IdFactory();
+        if (idFactory == null) idFactory = new IdFactory();
         return idFactory;
     }
 }

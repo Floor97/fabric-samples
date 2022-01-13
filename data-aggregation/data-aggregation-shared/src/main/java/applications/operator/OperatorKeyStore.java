@@ -12,14 +12,11 @@ public class OperatorKeyStore implements KeyStore {
     private AsymmetricCipherKeyPair postQuantumKeys;
     private int index;
 
-    public AsymmetricCipherKeyPair getPostQuantumKeys() {
-        return this.postQuantumKeys;
-    }
-
-    public NTRUEncryptionPublicKeyParameters getPublicKey() {
-        return (NTRUEncryptionPublicKeyParameters) postQuantumKeys.getPublic();
-    }
-
+    /**
+     * Generates a new set of NTRUEncrypt keys and sets them in postQuantumKeys.
+     *
+     * @return the OperatorKeyStore instance.
+     */
     private OperatorKeyStore setPostQuantumKeys() {
         NTRUEncryptionKeyGenerationParameters params = NTRUEncryptionKeyGenerationParameters.APR2011_743_FAST.clone();
         params.polyType = NTRUParameters.TERNARY_POLYNOMIAL_TYPE_SIMPLE;
@@ -27,6 +24,14 @@ public class OperatorKeyStore implements KeyStore {
         ntruGen.init(params);
         this.postQuantumKeys = ntruGen.generateKeyPair();
         return this;
+    }
+
+    public AsymmetricCipherKeyPair getPostQuantumKeys() {
+        return this.postQuantumKeys;
+    }
+
+    public NTRUEncryptionPublicKeyParameters getPublicKey() {
+        return (NTRUEncryptionPublicKeyParameters) postQuantumKeys.getPublic();
     }
 
     public int getIndex() {
