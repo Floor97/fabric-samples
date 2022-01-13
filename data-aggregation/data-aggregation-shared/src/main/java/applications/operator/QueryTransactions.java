@@ -1,34 +1,57 @@
 package applications.operator;
 
-import datatypes.aggregationprocess.AggregationProcessData;
-import datatypes.dataquery.DataQuery;
+import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonce;
+import datatypes.values.IPFSFile;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
 public class QueryTransactions {
-    private static Scanner scan = new Scanner(System.in);
+    private static final Scanner scan = new Scanner(System.in);
 
-    public static void add(Contract contract, String id, AggregationProcessData data, EncryptedNonce condensedNonces) throws ContractException, InterruptedException, TimeoutException {
+    /**
+     * The Add transaction in the data query contract is submitted. The obfuscated
+     * data and nonces are sent as transient data. The id, number of participants
+     * and index is used as regular input.
+     *
+     * @param contract        the data query contract.
+     * @param id              the id of the data aggregation asset.
+     * @param file            the IPFS file used in the aggregation process.
+     * @param condensedNonces nonces encrypted with NTRUEncrypt.
+     * @param index           the index the operator has in the KeyStore.
+     * @throws ContractException    when an exception occurs in the data query contract.
+     *                              An exception occurs when the data query asset is not in the waiting phase,
+     *                              or does not exist.
+     * @throws InterruptedException thrown by the submit method.
+     * @throws TimeoutException     thrown by the submit method.
+     */
+    public static void add(Contract contract, String id, IPFSFile file, EncryptedNonce condensedNonces, int index)
+            throws ContractException, InterruptedException, TimeoutException {
 
-        printResponse(
-                contract.submitTransaction(
-                        "AddResult",
-                        id,
-                        data.getCipherData() == null ? null : data.getCipherData().getData(),
-                        data.getCipherData() == null ? null : data.getCipherData().getExponent(),
-                        EncryptedNonce.serialise(condensedNonces),
-                        String.valueOf(data.getNrParticipants())
-                )
-        );//todo change data and exponent
+        Map<String, byte[]> trans = new HashMap<>();
+        trans.put("data", EncryptedData.serialize(file.getData()).getBytes(StandardCharsets.UTF_8));
+        trans.put("nonces", EncryptedNonce.serialize(condensedNonces).getBytes(StandardCharsets.UTF_8));
+        contract.createTransaction("Add").setTransient(trans).submit(
+                id,
+                String.valueOf(file.getNonces().length),
+                String.valueOf(index)
+        );
     }
 
-    public static void exists(Contract contract) throws ContractException, InterruptedException, TimeoutException {
-        byte[] responseExists = contract.submitTransaction(
+    /**
+     * The Exists transaction in the data query contract is submitted.
+     *
+     * @param contract the data query contract.
+     * @throws ContractException thrown by the evaluate method.
+     */
+    public static void exists(Contract contract) throws ContractException {
+        byte[] responseExists = contract.evaluateTransaction(
                 "DataQueryExists",
                 scanNextLine("Transaction Exists selected\nID: ")
         );
@@ -39,10 +62,5 @@ public class QueryTransactions {
     private static String scanNextLine(String message) {
         System.out.print(message);
         return scan.next();
-    }
-
-    private static void printResponse(byte[] response) {
-        DataQuery serDataQuery = DataQuery.deserialize(response);
-        System.out.println("Response: " + serDataQuery);
     }
 }

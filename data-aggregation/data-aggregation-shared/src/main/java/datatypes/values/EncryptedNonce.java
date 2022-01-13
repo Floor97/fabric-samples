@@ -10,11 +10,23 @@ public class EncryptedNonce {
         this.nonce = nonce;
     }
 
-    public static EncryptedNonce deserialise(String serNonce) {
+    /**
+     * Deserializes the EncryptedNonce object.
+     *
+     * @param serNonce the serialized EncryptedNonce object.
+     * @return the EncryptedNonce object.
+     */
+    public static EncryptedNonce deserialize(String serNonce) {
         return new EncryptedNonce(Base64.getDecoder().decode(serNonce));
     }
 
-    public static String serialise(EncryptedNonce encryptedNonce) {
+    /**
+     * Serializes the EncryptedNonce object.
+     *
+     * @param encryptedNonce the EncryptedNonce object.
+     * @return the serialized EncryptedNonce object.
+     */
+    public static String serialize(EncryptedNonce encryptedNonce) {
         return Base64.getEncoder().encodeToString(encryptedNonce.nonce);
     }
 
@@ -24,6 +36,6 @@ public class EncryptedNonce {
 
     @Override
     public String toString() {
-        return serialise(this);
+        return serialize(this);
     }
 }

@@ -1,7 +1,8 @@
 package datatypes.dataquery;
 
-import datatypes.values.EncryptedData;
-import datatypes.values.EncryptedNonces;
+import datatypes.values.IPFSConnection;
+import datatypes.values.IPFSFile;
+import io.ipfs.multihash.Multihash;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 import org.json.JSONObject;
@@ -12,42 +13,42 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class DataQuery {
 
     @Property()
-    private String id;
+    private final String id;
 
     @Property()
-    private DataQuerySettings settings;
+    private final DataQuerySettings settings;
 
     @Property()
-    private DataQueryResult result;
+    private final IPFSFile ipfsFile;
 
     @Property()
     private DataQueryState state = DataQueryState.WAITING;
 
-    public String getId() {
-        return id;
+    @Property()
+    private boolean incFlag = false;
+
+    public DataQuery(String id, DataQuerySettings settings, IPFSFile ipfsFile) {
+        this.id = id;
+        this.settings = settings;
+        this.ipfsFile = ipfsFile;
     }
 
-    public DataQuery setId(String id) {
+    public DataQuery(String id, DataQuerySettings settings, Multihash hash) {
         this.id = id;
-        return this;
+        this.settings = settings;
+        this.ipfsFile = IPFSConnection.getInstance().getFile(hash);
+    }
+
+    public String getId() {
+        return id;
     }
 
     public DataQuerySettings getSettings() {
         return settings;
     }
 
-    public DataQuery setSettings(DataQuerySettings settings) {
-        this.settings = settings;
-        return this;
-    }
-
-    public DataQueryResult getResult() {
-        return result;
-    }
-
-    public DataQuery setResult(DataQueryResult result) {
-        this.result = result;
-        return this;
+    public IPFSFile getIpfsFile() {
+        return ipfsFile;
     }
 
     public boolean isWaiting() {
@@ -77,35 +78,33 @@ public class DataQuery {
         return this;
     }
 
+    public boolean isIncFlag() {
+        return incFlag;
+    }
+
+    public void setIncFlag() {
+        this.incFlag = true;
+    }
+
+    /**
+     * Deserializes the JSON into a DataQuery object.
+     *
+     * @param data the JSON.
+     * @return the DataQuery object.
+     */
     public static DataQuery deserialize(byte[] data) {
         JSONObject json = new JSONObject(new String(data, UTF_8));
 
         String id = json.getString("id");
-        String paillierModulus = json.getString("paillierModulus");
-        String postQuantumPk = json.getString("postQuantumPk");
         int nrOperators = json.getInt("nrOperators");
-        long endTime = json.getLong("endTime");
+        long endTime = json.getLong("duration");
+        boolean incFlag = json.getBoolean("incFlag");
+        IPFSFile file = IPFSFile.deserialize(json.getString("file"), nrOperators);
 
-        DataQuery dataQuery;
-        if (!json.has("result")) {
-            String cipherData = json.getString("cipherData");
-            int nrParticipants = json.getInt("nrParticipants");
-            String nonces = json.getString("cipherNonces");
-            boolean incFlag = json.getBoolean("incFlag");
-
-            dataQuery = createInstance(id,
-                    DataQuerySettings.createInstance(paillierModulus, postQuantumPk, nrOperators, endTime),
-                    DataQueryResult.createInstance(EncryptedData.deserialize(cipherData), EncryptedNonces.deserialize(nonces), nrParticipants)
-            );
-            if(incFlag) dataQuery.getResult().setIncFlag();
-        } else {
-            dataQuery = createInstance(id,
-                    DataQuerySettings.createInstance(paillierModulus, postQuantumPk, nrOperators, endTime),
-                    null
-            );
-        }
-
+        DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, endTime), file);
+        if (incFlag) dataQuery.setIncFlag();
         dataQuery.state = json.getEnum(DataQueryState.class, "state");
+
         return dataQuery;
     }
 
@@ -116,44 +115,21 @@ public class DataQuery {
      * @return the JSON value of the data query object.
      */
     public static byte[] serialize(DataQuery dataQuery) {
-        DataQueryResult res = dataQuery.getResult();
-
         JSONObject json = new JSONObject()
                 .put("id", dataQuery.id)
-                .put("paillierModulus", dataQuery.getSettings().getPaillierModulus())
-                .put("postQuantumPk", dataQuery.getSettings().getPostQuantumPk())
                 .put("nrOperators", dataQuery.getSettings().getNrOperators())
-                .put("endTime", dataQuery.getSettings().getEndTime())
-                .put("state", dataQuery.state);
-        if (res != null)
-            json.put("cipherData", EncryptedData.serialize(res.getCipherData()))
-                    .put("cipherNonces", EncryptedNonces.serialize(dataQuery.getResult().getCipherNonces()))
-                    .put("nrParticipants", dataQuery.getResult().getNrParticipants())
-                    .put("incFlag", dataQuery.getResult().isIncFlag());
-        else json.put("result", "null");
+                .put("duration", dataQuery.getSettings().getDuration())
+                .put("state", dataQuery.state)
+                .put("incFlag", dataQuery.incFlag)
+                .put("file", IPFSFile.serialize(dataQuery.ipfsFile));
         return json.toString().getBytes(UTF_8);
-    }
-
-    /**
-     * Factory method for creating an DataQuery object.
-     *
-     * @param id       the unique id of the process.
-     * @param settings The settings of the process.
-     * @param result   The result of the process.
-     * @return the created DataQuery object.
-     */
-    public static DataQuery createInstance(String id, DataQuerySettings settings, DataQueryResult result) {
-        return new DataQuery()
-                .setId(id)
-                .setSettings(settings)
-                .setResult(result);
     }
 
     @Override
     public String toString() {
         return "queryID: " + this.id +
                 ",\nsettings:\n " + this.settings +
-                ",\n result:\n " + this.result +
+                ",\nprocess data: " + this.ipfsFile +
                 ",\n state: " + this.state;
     }
 

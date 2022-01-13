@@ -5,7 +5,6 @@ import applications.operator.generators.NTRUEncryption;
 import applications.operator.generators.PaillierEncryption;
 import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;
-import datatypes.values.EncryptedNonce;
 import datatypes.values.EncryptedNonces;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.hyperledger.fabric.gateway.Contract;
@@ -20,6 +19,13 @@ import java.util.function.Consumer;
 
 public class ApplicationController {
 
+    /**
+     * The main loop of the application is started. The user will be prompted with options and can
+     * decide by entering a name which functionality to use. The existing functionalities are
+     * exists, start, close, retrieve, remove and exit.
+     *
+     * @param contract the data query contract.
+     */
     public static void applicationLoop(Contract contract) {
         ApplicationController.setContractListener(contract);
         Scanner scan = new Scanner(System.in);
@@ -28,18 +34,12 @@ public class ApplicationController {
         IdFactory.getInstance().setAskerName(scan.next());
 
         while (true) {
-            System.out.println("Please select a transaction: exists, start, add, close, retrieve or remove");
+            System.out.println("Please select a transaction: exists, start, close, retrieve or remove. Type exit to stop.");
             try {
                 switch (scan.next()) {
-                    case "exists":
-                        QueryTransactions.exists(contract);
-                        break;
                     case "start":
                         Pair<String, DataQueryKeyStore> storePair = QueryTransactions.start(contract);
                         ApplicationModel.getInstance().addKey(storePair.getP1(), storePair.getP2());
-                        break;
-                    case "add":
-                        QueryTransactions.add(contract);
                         break;
                     case "close":
                         QueryTransactions.close(contract);
@@ -49,6 +49,9 @@ public class ApplicationController {
                         break;
                     case "remove":
                         QueryTransactions.remove(contract);
+                        break;
+                    case "exists":
+                        QueryTransactions.exists(contract);
                         break;
                     case "exit":
                         System.exit(0);
@@ -63,31 +66,29 @@ public class ApplicationController {
         }
     }
 
+    /**
+     * The listener for the data query contract is created and set.
+     *
+     * @param contract the data query contract.
+     */
     private static void setContractListener(Contract contract) {
         Consumer<ContractEvent> consumer = contractEvent -> {
-            switch (contractEvent.getName()) {
-                case "DoneQuery":
-                    try {
-                        DataQuery dataQuery = DataQuery.deserialize(contractEvent.getPayload().get());
-                        EncryptedData data = dataQuery.getResult().getCipherData();
-                        EncryptedNonces nonces = dataQuery.getResult().getCipherNonces();
-                        DataQueryKeyStore keystore = ApplicationModel.getInstance().getKey(dataQuery.getId());
-                        BigInteger dataAndNonces = PaillierEncryption.decrypt(data, keystore.getPaillierKeys());
-                        try {
-                            for (EncryptedNonce nonce : nonces.getNonces()) {
-                                byte[] decryptedNonce = NTRUEncryption.decrypt(nonce.getNonce(), keystore.getPostQuantumKeys());
-                                dataAndNonces = dataAndNonces.subtract(new BigInteger(new String(decryptedNonce)));
-                            }
-                        } catch (InvalidCipherTextException e) {
-                            e.printStackTrace();
-                        }
-                        System.out.println("Result of " + dataQuery.getId() + " is " + dataAndNonces.toString());
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    break;
-                default:
-                    System.out.println("Event occurred: " + contractEvent.getName());
+            if (!"DoneQuery".equals(contractEvent.getName())) return;
+
+            try {
+                DataQuery dataQuery = DataQuery.deserialize(contractEvent.getPayload().get());
+                EncryptedData data = dataQuery.getIpfsFile().getData();
+                EncryptedNonces[] nonces = dataQuery.getIpfsFile().getNonces();
+                DataQueryKeyStore keystore = ApplicationModel.getInstance().getKey(dataQuery.getId());
+                BigInteger dataAndNonces = PaillierEncryption.decrypt(data, keystore.getPaillierKeys());
+
+                for (EncryptedNonces nonce : nonces) {
+                    byte[] decryptedNonce = NTRUEncryption.decrypt(nonce.getNonces()[0].getNonce(), keystore.getPostQuantumKeys());
+                    dataAndNonces = dataAndNonces.subtract(new BigInteger(new String(decryptedNonce)));
+                }
+                System.out.println("Result of " + dataQuery.getId() + " is " + dataAndNonces.toString());
+            } catch (InvalidCipherTextException e) {
+                e.printStackTrace();
             }
         };
         contract.addContractListener(consumer);
