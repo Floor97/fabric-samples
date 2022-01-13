@@ -1,53 +1,40 @@
 [//]: # (SPDX-License-Identifier: CC-BY-4.0)
 
 ## 1. Description
-This repository is a fork of the [fabric-samples repository](https://github.com/hyperledger/fabric-samples), and contains the prototype result of a Research Project, in the data-aggregation folder. It gives a prototype for general use case data aggregation using Homomorphic Encryption and Hyperledger Fabric. It is an adaption of the Ethereum design proposed in Regueiro et al. (2021) to fit the Hyperledger Fabric blockchain.
+This repository is a fork of the [fabric-samples repository](https://github.com/hyperledger/fabric-samples), and contains the prototype result of a Research Project, in the data-aggregation folder. It gives a prototype for general use case data aggregation using Homomorphic Encryption and Hyperledger Fabric. It is an adaption of the protocol proposed in Regueiro et al. (2021) to fit the Hyperledger Fabric blockchain.
+- Several scripts from the test-network folder were duplicated and then adapted to fit the use case.
+- test-network/configtx/configtx.yaml was adapted to allow for a channel to have peers from only one organisation.
 
+## 2. Structure
+data-aggregation
+|
+|_data-aggregation-shared
+|_data-query-application
+|_data-query-contract-prototype
+|_gateway
+|_libs
+|_paillier-application
+|_paillier-contract-prototype
+|_scripts
+|_wallet
 
-## 2. Relevant Changes
- - The paillier-contract-prototype folder was added and contains a smart contract using the Paillier homomorphic encryption scheme.
- - The data-query-contract-prototype contains a smart contract and corresponding DataType enabling the launch of data queries.  
+From this list, the gateway and wallet folder contain files generated during the connection of the application to the network. The libs folder contains jar files of dependencies that are used in the remaining folders. The data-query-contract-prototype and data-query-application modules contain the smart contract used on the asker channel, and contains the application of the asker respectively. The paillier-contract-prototype and paillier-application modules contain the smart contract used on the participant channel, and contains the application of the participant who interacts with both contracts respectively. The data-aggregation-shared contains classes used in the four last modules.
 
-## 3. Details Paillier Contract
-The library [Javallier](https://github.com/n1analytics/javallier) was used to implement the Paillier homomorphic encryption scheme. The contract contains the following transactions:
- - StartAggregation: starts a new aggregation process.
- - AddData: adds the given data into the existing aggregation process.
- - Closed: sets the status of the aggregation processes to closed.
- - RetrieveAggregationProcess: retrieves the aggregation process and removes it from the ledger.
- - AggregationProcessExists: returns a boolean indicating if the aggregation process with key input exists.
- 
+## 5 Running the network and applications
+In this section it will be described how to run the network. This prototype was tested Windows, using WSL2 running Ubuntu 18.04 on docker. 
 
-### 3.1 Details AggregationProcess object
-The object has the following properties:
- - String key: the unique key of the aggregation process.
- - BigInteger modulus: the modulus of the public key encrypting the data in the aggregation process.
- - BigInteger cData: the ciphertext of the encrypted aggregated data.
- - int expData: the exponent of the ciphertext of the encrypted aggregated data.
- - int nrParticipants: the number of participants in the aggregation process.
- - String status: the status of the aggregation process, which is either AGGREGATING or CLOSED.
+#### 5.1 Setting up the network
+Step 1. Follow the instructions on [Hyperledger Fabric Docs](https://hyperledger-fabric.readthedocs.io/en/latest/getting_started.html) under "Getting Started - Install". If you want to make sure this went successfully, try the instructions under "Getting Started - Run Fabric". Note that in order do so, the step to install Go in "Getting Started - Install" should also be executed.
 
-## 4. Details Data Query Contract
-No encryption libraries were used in this contract. The contract contains the following transactions:
- - StartQuery: starts a new data query.
- - AddResult: adds the result of the data query.
- - Close: closes the data query.
- - RetrieveDataQuery: retrieves the data query.
- - RemoveDataQuery: removes the data query.
- - DataQueryExists: checks if the data query with the queryID exists.
+Step 2. Launch the network using the launch_prototype.sh script. Run:
+	. ./launch_prototype start <nr_peers + 1>
+The nr_peers signifies how many extra participants you want to launch. By default 1 asker "peer0.org2.example.com" is launched, and 1 participant "peer0.org1.example.com". To check if this was successful run:
+	docker ps -a
+which will display the running peers if successful. 
 
-### 4.1 Details DataQuery object
-The object has the following properties:
- - String queryID: the unique ID of the data query.
- - String result: the result of the data query.
- - String expResult: the exponent of the encrypted result.
- - String timeLimit: the time limit the data query can have.
- - String nrParticipants: the number of wanted participants in the data query.
- - String status: the status of the data query, which can be WAITING, DONE or CLOSED.
+Step 3. Run IPFS. If IPFS is not setup yet, install it using the guide on their [GitHub page](https://github.com/ipfs/ipfs). In data-aggregation/data-aggregation-shared/src/main/java/datatypes/values/IPFSConnection.java fill in your own IPv4 address. 127.0.0.1 could also work, but does not always work with docker.
 
-## 5 Available scripts
- - launch_prototype.sh - launches the test-network and deploys the aggregation-process-contract on the network.
- - run_paillier.sh     - enables the use of the aforementioned transactions with the correct flags.
- - run_query.sh        - enables the use of the aforementioned transactions with the correct flags.
+netsh interface portproxy add v4tov4 listenport=5001 listenaddress=0.0.0.0 connectport=5001 connectaddress=172.20.207.9
 
 ## 6 Credit
 This project employs the test network from the [Hyperledger Fabric Samples repository](https://github.com/hyperledger/fabric-samples) to test smart contracts.

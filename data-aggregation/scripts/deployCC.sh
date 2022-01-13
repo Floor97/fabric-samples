@@ -2,6 +2,8 @@
 
 source scripts/utils.sh
 
+export PATH=${PWD}/../bin:$PATH
+export FABRIC_CFG_PATH=${PWD}/configtx
 CHANNEL_NAME=${1:-"mychannel"}
 CC_NAME=${2}
 CC_SRC_PATH=${3}

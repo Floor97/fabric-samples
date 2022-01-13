@@ -24,7 +24,7 @@ public class QueryTransactions {
         DataQueryKeyStore newKeys = new DataQueryKeyStore();
         Pair<PaillierPublicKey, NTRUEncryptionPublicKeyParameters> pubkeys = newKeys.getPublicKeys();
 
-        Map<String, byte[]> trans = new HashMap<String, byte[]>();
+        Map<String, byte[]> trans = new HashMap<>();
         trans.put("paillier", KeyStore.paPubKeyToString(pubkeys.getP1()).getBytes(StandardCharsets.UTF_8));
         trans.put("post-quantum", KeyStore.pqPubKeyToBytes(pubkeys.getP2()));
 
@@ -46,7 +46,7 @@ public class QueryTransactions {
     public static void retrieve(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         printResponse(
                 contract.evaluateTransaction(
-                        "RetrieveDataQuery",
+                        "Retrieve",
                         scanNextLine("Transaction Retrieve selected\nID: ")
                 )
         );
@@ -55,7 +55,7 @@ public class QueryTransactions {
     public static void remove(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         printResponse(
                 contract.submitTransaction(
-                        "RemoveDataQuery",
+                        "Remove",
                         scanNextLine("Transaction Remove selected\nID: ")
                 )
         );
@@ -63,7 +63,7 @@ public class QueryTransactions {
 
     public static void exists(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         byte[] responseExists = contract.evaluateTransaction(
-                "DataQueryExists",
+                "Exists",
                 scanNextLine("Transaction Exists selected\nID: ")
         );
 

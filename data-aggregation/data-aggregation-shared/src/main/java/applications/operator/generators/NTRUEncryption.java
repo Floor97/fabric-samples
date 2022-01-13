@@ -11,7 +11,7 @@ public class NTRUEncryption {
     private static final NTRUEngine ntru = new NTRUEngine();
 
     public static byte[] encrypt(byte[] data, String serPqpk) throws InvalidCipherTextException {
-        NTRUEncryptionPublicKeyParameters pqpk =  KeyStore.pqStringToPubKey(serPqpk);
+        NTRUEncryptionPublicKeyParameters pqpk =  KeyStore.pqToPubKey(serPqpk);
         ntru.init(true, pqpk);
         return ntru.processBlock(data, 0, data.length);
     }

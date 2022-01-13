@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function deploy() {
-    beep 2>/dev/null || true
+    #beep 2>/dev/null || true
 
     # Expects to work in the 'test-network' folder
     if [ "${PWD##*/}" != "test-network" ]; then
@@ -41,7 +41,7 @@ function stop() {
 }
 
 function start() {
-    beep 2>/dev/null || true
+    #beep 2>/dev/null || true
     stop # Stop the network
     ./network.sh up -ca                         # creates p0o1 and p0o2
     ./network.sh createChannel -c "asker"       # creates channel "asker", both peers join

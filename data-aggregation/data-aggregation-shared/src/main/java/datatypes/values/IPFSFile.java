@@ -25,9 +25,6 @@ public class IPFSFile {
         this.operatorKeys = builder.operatorKeys;
         this.data = builder.data;
         this.nonces = builder.nonces;
-
-        if (this.hash == null)
-            this.hash = IPFSConnection.getInstance().addFile(this);
     }
 
     public static IPFSFile deserialize(byte[] file, int nrOperators) {
@@ -62,7 +59,7 @@ public class IPFSFile {
         StringBuilder builder = new StringBuilder();
         builder.append(file.paillierKey)
                 .append("\n").append(KeyStore.pqPubKeyToString(file.postqKey))
-                .append("\n").append(file.operatorKeys == null ? "null" : Arrays.stream(file.getOperatorKeys()).map(KeyStore::pqPubKeyToString).collect(Collectors.toList()))
+                .append("\n").append(file.operatorKeys == null ? "null" : Arrays.stream(file.operatorKeys).map(KeyStore::pqPubKeyToString).collect(Collectors.toList()))
                 .append("\n").append(file.data == null ? "null" : file.data);
 
         if (file.nonces != null) {
@@ -107,6 +104,7 @@ public class IPFSFile {
         for (int i = 0; i < operatorKeys.length; i++) {
             if (this.operatorKeys[i] == null) {
                 this.operatorKeys[i] = newKey;
+                this.hash = IPFSConnection.getInstance().addFile(this);
                 return i;
             }
         }
@@ -135,7 +133,6 @@ public class IPFSFile {
         }
         return -1;
     }
-
 
     public static class IPFSFileBuilder {
         private Multihash hash;
@@ -171,7 +168,11 @@ public class IPFSFile {
         }
 
         public IPFSFile build() {
-            return new IPFSFile(this);
+            IPFSFile file = new IPFSFile(this);
+            System.out.println("Made the actual object");
+            if (file.hash == null) file.hash = IPFSConnection.getInstance().addFile(file);
+            System.out.println("Set the hash");
+            return file;
         }
     }
 }

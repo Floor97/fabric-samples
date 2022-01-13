@@ -14,7 +14,7 @@ public class EncryptedNonces {
     private final EncryptedNonce[] nonces;
     private int pointer;
 
-    public EncryptedNonces(EncryptedNonce[] nonces) {
+    public EncryptedNonces(EncryptedNonce... nonces) {
         this.nonces = nonces;
         setPointer();
     }

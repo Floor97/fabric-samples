@@ -1,32 +1,32 @@
 package applications.operator;
 
-import datatypes.aggregationprocess.AggregationProcessData;
-import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonce;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
 public class QueryTransactions {
-    private static Scanner scan = new Scanner(System.in);
+    private static final Scanner scan = new Scanner(System.in);
 
-    public static void add(Contract contract, String id, EncryptedData data, EncryptedNonce condensedNonces) throws ContractException, InterruptedException, TimeoutException {
-                contract.submitTransaction(
-                        "AddResult",
-                        id,
-                        data.getData() == null ? null : data.getData(),
-                        data.getCipherData() == null ? null : data.getCipherData().getExponent(),
-                        EncryptedNonce.serialize(condensedNonces),
-                        String.valueOf(data.getNrParticipants())
-                );
+    public static void add(Contract contract, String id, EncryptedData data, EncryptedNonce condensedNonces, int nrParticipants, int index) throws ContractException, InterruptedException, TimeoutException {
+        Map<String, byte[]> trans = new HashMap<>();
+        trans.put("data", EncryptedData.serialize(data).getBytes(StandardCharsets.UTF_8));
+        trans.put("nonces", EncryptedNonce.serialize(condensedNonces).getBytes(StandardCharsets.UTF_8));
+        contract.createTransaction("Add").setTransient(trans).submit(
+                id,
+                String.valueOf(nrParticipants),
+                String.valueOf(index)
+        );
     }
 
-    public static void exists(Contract contract) throws ContractException, InterruptedException, TimeoutException {
-        byte[] responseExists = contract.submitTransaction(
+    public static void exists(Contract contract) throws ContractException {
+        byte[] responseExists = contract.evaluateTransaction(
                 "DataQueryExists",
                 scanNextLine("Transaction Exists selected\nID: ")
         );
@@ -34,13 +34,8 @@ public class QueryTransactions {
         System.out.printf("Asset exists: %s%n", new String(responseExists, StandardCharsets.UTF_8));
     }
 
-    private static String scanNextLine(String message) {
+    private static String scanNextLine(String message) {//todo create interface of Transactions with scanNextLine and printResponse methods
         System.out.print(message);
         return scan.next();
-    }
-
-    private static void printResponse(byte[] response) {
-        DataQuery serDataQuery = DataQuery.deserialize(response);
-        System.out.println("Response: " + serDataQuery);
     }
 }

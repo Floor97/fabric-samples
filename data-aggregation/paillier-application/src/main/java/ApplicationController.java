@@ -1,4 +1,5 @@
 import applications.IdFactory;
+import applications.KeyStore;
 import applications.operator.AggregationTransactions;
 import applications.operator.OperatorKeyStore;
 import applications.operator.QueryTransactions;
@@ -13,6 +14,7 @@ import org.hyperledger.fabric.gateway.ContractEvent;
 import org.hyperledger.fabric.gateway.ContractException;
 import shared.Pair;
 
+import java.util.Arrays;
 import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -31,7 +33,7 @@ public class ApplicationController {
         IdFactory.getInstance().setAskerName(scan.next());
 
         while (true) {
-            System.out.println("Please select a transaction: exists, start, add, close, retrieve or remove");
+            System.out.println("Please select a transaction: exists. Type exit to stop.");
             try {
                 switch (scan.next()) {
                     case "exists":
@@ -44,8 +46,8 @@ public class ApplicationController {
                         System.out.println("Unrecognised transaction");
                         break;
                 }
-            } catch (ContractException | InterruptedException | TimeoutException e) {
-                e.printStackTrace();
+            } catch (ContractException e) {
+                System.out.println(e.getMessage());
             }
 
         }
@@ -57,29 +59,25 @@ public class ApplicationController {
             try {
                 switch (contractEvent.getName()) {
                     case "StartQuery":
-                        System.out.println("StartQuery Event");
                         ApplicationController.startQuery(contractQuery, contractAgg, data);
                         break;
                     case "ResultQuery":
-                        System.out.println("ResultQuery Event");
                         OperatorKeyStore opKeystore = ApplicationModel.getInstance().getKey(data.getId());
-                        if (opKeystore != null) {
-                            AggregationProcess aggregationProcess = AggregationTransactions.retrieve(contractAgg, data.getId());
-                            QueryTransactions.add(contractQuery, data.getId(), aggregationProcess.getData(),
-                                    EncryptedNonces.condenseNonces(
-                                            opKeystore.getPostQuantumKeys(),
-                                            EncryptedNonces.getOperatorNonces(aggregationProcess, opKeystore.getIndex()),
-                                            data.getSettings().getPostQuantumPk()
-                                    )
-                            );
-                        }
+                        if (opKeystore == null) return;
+
+                        AggregationProcess aggregationProcess = AggregationProcess.deserialize(contractEvent.getPayload().get());
+                        QueryTransactions.add(contractQuery, data.getId(), aggregationProcess.getIpfsFile().getData(),
+                                EncryptedNonces.condenseNonces(
+                                        opKeystore.getPostQuantumKeys(),
+                                        EncryptedNonces.getOperatorNonces(aggregationProcess, opKeystore.getIndex()),
+                                        KeyStore.pqPubKeyToString(data.getIpfsFile().getPostqKey())
+                                ),
+                                aggregationProcess.getIpfsFile().getNonces().length,
+                                opKeystore.getIndex()
+                        );
                     case "RemoveQuery":
-                        System.out.println("RemoveQuery Event");
                         ApplicationModel.getInstance().removeProcess(data.getId());
                         AggregationTransactions.remove(contractAgg, data.getId());
-                        break;
-                    default:
-                        System.out.println("Event occurred: " + contractEvent.getName());
                         break;
                 }
             } catch (InterruptedException | TimeoutException | InvalidCipherTextException e) {
@@ -95,24 +93,18 @@ public class ApplicationController {
         Consumer<ContractEvent> consumer = contractEvent -> {
             AggregationProcess aggregationProcess = AggregationProcess.deserialize(contractEvent.getPayload().get());
             try {
-                switch (contractEvent.getName()) {
-                    case "StartSelection":
-                        System.out.println("StartSelection Event");
-                        OperatorKeyStore opKeystore = AggregationTransactions.addop(contractAgg, aggregationProcess.getId());
-                        ApplicationModel.getInstance().addProcess(aggregationProcess.getId(), opKeystore);
-                        break;
-                    case "StartAggregation":
-                        if(ApplicationModel.getInstance().getOperatorThreshold() > aggregationProcess.getData().getNrOperators() //if less operators than threshold
-                                && ApplicationModel.getInstance().getKey(aggregationProcess.getId()) == null)                    //and self not operator, don't participate
-                            return;
-                        System.out.println("StartAggregation Event");
-                        Pair<EncryptedData, EncryptedNonces> dataAndNonces = DataGenerator.generateDataAndNonces(aggregationProcess.getKeystore().getPaillierModulus(), aggregationProcess.getKeystore().getOperatorKeys());
-                        AggregationTransactions.adddata(contractAgg, aggregationProcess.getId(), dataAndNonces.getP1().getData(), dataAndNonces.getP1().getExponent(), dataAndNonces.getP2());
-                        break;
-                    default:
-                        System.out.println("Event occurred: " + contractEvent.getName());
-                        break;
+
+                if ("StartAggregation".equals(contractEvent.getName())
+                        && (ApplicationModel.getInstance().getOperatorThreshold() <= aggregationProcess.getIpfsFile().getOperatorKeys().length
+                        || ApplicationModel.getInstance().getKey(aggregationProcess.getId()) != null)) {
+
+                    Pair<EncryptedData, EncryptedNonces> dataAndNonces = DataGenerator.generateDataAndNonces(
+                            aggregationProcess.getIpfsFile().getPaillierKey(),
+                            Arrays.stream(aggregationProcess.getIpfsFile().getOperatorKeys()).map(KeyStore::pqPubKeyToString).toArray(String[]::new)
+                    );
+                    AggregationTransactions.add(contractAgg, aggregationProcess.getId(), dataAndNonces.getP1(), dataAndNonces.getP2());
                 }
+
             } catch (InterruptedException | TimeoutException | org.bouncycastler.crypto.InvalidCipherTextException e) {
                 e.printStackTrace();
             } catch (ContractException e) {
@@ -124,8 +116,10 @@ public class ApplicationController {
     }
 
     private static void startQuery(Contract contractQuery, Contract contractAgg, DataQuery data) throws ContractException, InterruptedException, TimeoutException {
-        OperatorKeyStore keystore = AggregationTransactions.start(contractAgg, contractQuery, data);
+        OperatorKeyStore keystore = AggregationTransactions.start(contractAgg, data);
         ApplicationModel.getInstance().addProcess(data.getId(), keystore);
+
+        if (keystore.getIndex() != 0) return;
 
         Timer timer = new Timer();
         TimerTask action = new TimerTask() {
@@ -133,20 +127,22 @@ public class ApplicationController {
                 try {
                     AggregationProcess aggregationProcess = AggregationTransactions.close(contractAgg, data.getId());
 
-                    QueryTransactions.add(contractQuery, aggregationProcess.getId(), aggregationProcess.getData(),
+                    QueryTransactions.add(contractQuery, aggregationProcess.getId(), aggregationProcess.getIpfsFile().getData(),
                             EncryptedNonces.condenseNonces(
                                     keystore.getPostQuantumKeys(),
                                     EncryptedNonces.getOperatorNonces(aggregationProcess, keystore.getIndex()),
-                                    data.getSettings().getPostQuantumPk()
-                            ));
+                                    KeyStore.pqPubKeyToString(data.getIpfsFile().getPostqKey())
+                            ),
+                            aggregationProcess.getIpfsFile().getNonces().length,
+                            keystore.getIndex()
+                    );
                 } catch (InterruptedException | TimeoutException | InvalidCipherTextException e) {
                     e.printStackTrace();
                 } catch (ContractException e) {
                     System.out.println(e.getMessage());
                 }
             }
-
         };
-        timer.schedule(action, data.getSettings().getEndTime() * 1000);
+        timer.schedule(action, data.getSettings().getDuration() * 1000);
     }
 }

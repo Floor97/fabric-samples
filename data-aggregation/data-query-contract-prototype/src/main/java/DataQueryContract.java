@@ -2,6 +2,7 @@ import applications.KeyStore;
 import datatypes.dataquery.DataQuery;
 import datatypes.dataquery.DataQuerySettings;
 import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonce;
 import datatypes.values.EncryptedNonces;
 import datatypes.values.IPFSFile;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
@@ -32,11 +33,15 @@ public class DataQueryContract implements ContractInterface {
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void Start(Context ctx, String id, int nrOperators, long duration) {
+        System.out.println("Starting transaction Start");
         ChaincodeStub stub = ctx.getStub();
         Map<String, byte[]> trans = stub.getTransient();
+        System.out.println("Got transient data");
 
         if (Exists(ctx, id))
             throw new ChaincodeException(String.format("Data query, %s, already exists", id));
+
+        System.out.println("id does not exist yet");
 
         IPFSFile ipfsFile = new IPFSFile.IPFSFileBuilder(
                 new String(trans.get("paillier")),
@@ -45,8 +50,10 @@ public class DataQueryContract implements ContractInterface {
                 .setData(new EncryptedData("null", "null"))
                 .setNonces(new datatypes.values.EncryptedNonces[0])
                 .build();
+        System.out.println("Made ipfs file");
 
         DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, duration), ipfsFile);
+        System.out.println("Made dataquery file");
 
         byte[] serDataQuery = DataQuery.serialize(dataQuery);
         stub.setEvent("StartQuery", serDataQuery);
@@ -67,16 +74,16 @@ public class DataQueryContract implements ContractInterface {
      * @return the DataQuery object as a String.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public byte[] Add(Context ctx, String id, int nrParticipants) {
+    public byte[] Add(Context ctx, String id, int nrParticipants, int index) {
         ChaincodeStub stub = retrieveStub(ctx, id);
-        Map<String, byte[]> map = stub.getTransient();
+        Map<String, byte[]> trans = stub.getTransient();
         DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
 
         if (!dataQuery.isWaiting())
             throw new ChaincodeException(String.format("Data query, %s, is not waiting", id));
 
         IPFSFile ipfsFile = dataQuery.getIpfsFile();
-        EncryptedData encData = EncryptedData.deserialize(new String(map.get("data")));
+        EncryptedData encData = EncryptedData.deserialize(new String(trans.get("data")));
 
         if (ipfsFile.getData().getData().equals("null")) {
             dataQuery.getIpfsFile().setData(encData);
@@ -84,7 +91,7 @@ public class DataQueryContract implements ContractInterface {
                 || !ipfsFile.getData().getExponent().equals(encData.getExponent())
                 || dataQuery.getIpfsFile().getNonces().length != nrParticipants)
             dataQuery.setIncFlag();
-        ipfsFile.addNonces(EncryptedNonces.deserialize(map.get("nonces")));
+        ipfsFile.getNonces()[index] = new EncryptedNonces(EncryptedNonce.deserialize(new String(trans.get("nonces"))));
 
         byte[] serDataQuery;
         if (ipfsFile.getNonces().length == nrParticipants) {

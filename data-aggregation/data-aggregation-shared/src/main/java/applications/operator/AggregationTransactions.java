@@ -7,53 +7,38 @@ import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonces;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
-import org.hyperledger.fabric.shim.ChaincodeException;
 
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
 public class AggregationTransactions {
 
-    private static Scanner scan = new Scanner(System.in);
+    private static final Scanner scan = new Scanner(System.in);
 
-    public static OperatorKeyStore start(Contract contractAgg, Contract contractQuery, DataQuery dataQuery) throws ContractException, InterruptedException, TimeoutException {
+    public static OperatorKeyStore start(Contract contractAgg, DataQuery dataQuery) throws ContractException, InterruptedException, TimeoutException {
         OperatorKeyStore keystore = OperatorKeyStore.createInstance();
-        keystore.setIndex(0);
-        printResponse(
-                contractAgg.submitTransaction(
-                        "StartAggregation",
-                        dataQuery.getId(),
-                        dataQuery.getSettings().getPaillierModulus(),
-                        KeyStore.pqPubKeyToString(keystore.getPublicKey()),
-                        String.valueOf(dataQuery.getSettings().getNrOperators())
-                )
+        Map<String, byte[]> transientData = new HashMap<>();
+
+        transientData.put("operator", KeyStore.pqPubKeyToString(keystore.getPublicKey()).getBytes(StandardCharsets.UTF_8));
+        byte[] index = contractAgg.createTransaction("Start").setTransient(transientData).submit(
+                dataQuery.getId(),
+                String.valueOf(dataQuery.getSettings().getNrOperators()),
+                dataQuery.getIpfsFile().getHash().toHex()
         );
-
-        return keystore;
-    }
-
-    public static OperatorKeyStore addop(Contract contract, String id) throws ContractException, InterruptedException, TimeoutException {
-        OperatorKeyStore keystore = OperatorKeyStore.createInstance();
-        //todo catch chaincode exception
-            byte[] index =
-                    contract.submitTransaction(
-                            "AddOperator",
-                            id,
-                            KeyStore.pqPubKeyToString(keystore.getPublicKey())
-                    );
         keystore.setIndex(Integer.parseInt(new String(index)));
+
         return keystore;
     }
 
-    public static void adddata(Contract contract, String id, String cipherData, String exponent, EncryptedNonces nonces) throws ContractException, InterruptedException, TimeoutException {
-        printResponse(
-                contract.submitTransaction(
-                        "AddData",
-                        id,
-                        EncryptedData.serialize(new EncryptedData(cipherData, exponent)),
-                        EncryptedNonces.serialize(nonces)
-                )
-        );
+    public static void add(Contract contract, String id, EncryptedData data, EncryptedNonces nonces) throws ContractException, InterruptedException, TimeoutException {
+        Map<String, byte[]> transientData = new HashMap<>();
+        transientData.put("data", EncryptedData.serialize(data).getBytes(StandardCharsets.UTF_8));
+        transientData.put("nonces", EncryptedNonces.serialize(nonces).getBytes(StandardCharsets.UTF_8));
+
+        contract.createTransaction("AddData").setTransient(transientData).submit(id);
     }
 
     public static AggregationProcess close(Contract contractAgg, String id) throws ContractException, InterruptedException, TimeoutException {
@@ -65,17 +50,17 @@ public class AggregationTransactions {
         );
     }
 
-    public static AggregationProcess retrieve(Contract contract, String id) throws ContractException, InterruptedException, TimeoutException {
+    public static AggregationProcess retrieve(Contract contract, String id) throws ContractException {
         return AggregationProcess.deserialize(
-                contract.submitTransaction(
+                contract.evaluateTransaction(
                         "RetrieveAggregationProcess",
                         id
                 )
         );
     }
 
-    public static void remove(Contract contract, String id) throws ContractException, InterruptedException, TimeoutException {
-        printResponse(
+    public static AggregationProcess remove(Contract contract, String id) throws ContractException, InterruptedException, TimeoutException {
+        return AggregationProcess.deserialize(
                 contract.submitTransaction(
                         "RemoveAggregationProcess",
                         id
@@ -83,9 +68,9 @@ public class AggregationTransactions {
         );
     }
 
-    public static void exists(Contract contract) throws ContractException, InterruptedException, TimeoutException {
+    public static void exists(Contract contract) throws ContractException {
         printResponse(
-                contract.submitTransaction(
+                contract.evaluateTransaction(
                         "AggregationProcessExists",
                         scanNextLine("Transaction Exists has been selected\nID: ")
                 )

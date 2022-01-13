@@ -14,6 +14,7 @@ import java.security.cert.X509Certificate;
 import java.security.InvalidKeyException;
 import java.security.cert.CertificateException;
 import java.io.Reader;
+import java.util.Objects;
 
 import org.hyperledger.fabric.gateway.Identities;
 import org.hyperledger.fabric.gateway.Wallet;
@@ -49,7 +50,6 @@ public class Application {
             e.printStackTrace();
             System.exit(-1);
         }
-
     }
 
     private static X509Certificate readX509Certificate(final Path certificatePath) throws IOException, CertificateException {
@@ -66,8 +66,9 @@ public class Application {
 
     private static void insertIdentity(Wallet wallet) {
         Path credentialPath = Paths.get("..", "..", "test-network", "organizations", "peerOrganizations", "org2.example.com", "users", "User1@org2.example.com", "msp");
-        Path certificatePath = credentialPath.resolve(Paths.get("signcerts", "User1@org2.example.com-cert.pem"));
-        Path privateKeyPath = credentialPath.resolve(Paths.get("keystore", "priv_sk"));
+        Path certificatePath = credentialPath.resolve(Paths.get("signcerts", "cert.pem"));
+        Path privateKeyPath = Objects.requireNonNull(credentialPath.resolve(Paths.get("keystore")).toFile().listFiles())[0].toPath();
+        //Path privateKeyPath = credentialPath.resolve(Paths.get("keystore", "priv_sk"));
         X509Certificate certificate;
         PrivateKey privateKey;
         try {

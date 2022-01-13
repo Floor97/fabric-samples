@@ -3,7 +3,6 @@ import com.n1analytics.paillier.EncryptedNumber;
 import com.n1analytics.paillier.PaillierContext;
 import com.n1analytics.paillier.PaillierPublicKey;
 import datatypes.aggregationprocess.AggregationProcess;
-import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonces;
 import datatypes.values.IPFSConnection;
@@ -25,66 +24,37 @@ import java.util.Map;
 public class AggregationProcessContract implements ContractInterface, Contract {
 
     /**
-     * Instantiates a new aggregation process on the ledger with the given id. This id is the same
-     * as the corresponding data query. The hash from the data query object is shared and used for
-     * the aggregation process. A new public key from the post-quantum scheme is added. Either
-     * the StartSelection event occurs if more operator keys are needed than one, or the
-     * StartAggregating event occurs when enough operators participated.
+     * If not present, instantiates a new aggregation process on the ledger with the given id.
+     * This id is the same as the corresponding data query. The hash from the data query object
+     * is shared and used for the aggregation process. A new public key from the post-quantum
+     * scheme is added. Either the StartSelection event occurs if more operator keys are needed
+     * or the StartAggregating event occurs when enough operators participated. Throws an exception
+     * if the aggregation already exists but is not in the selection phase.
      *
      * @param ctx the transaction context.
      * @param id  the unique id of the aggregation process.
      * @param ipfsHash the unique hash from the data query ipfs file.
-     * @return the created aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public byte[] Start(Context ctx, String id, String ipfsHash) {
+    public int Start(Context ctx, String id, String ipfsHash) {
         ChaincodeStub stub = ctx.getStub();
         Map<String, byte[]> map = stub.getTransient();
-
-        if (Exists(ctx, id))
-            throw new ChaincodeException(String.format("Aggregation process, %s, already exists", id));
-
-        AggregationProcess aggregationProcess = new AggregationProcess(id, IPFSConnection.getInstance().getFile(ipfsHash));
-        aggregationProcess.getIpfsFile().addOperatorKey(KeyStore.pqToPubKey(map.get("post-quantum")));
-
-        byte[] serAggregationProcess;
-        String event = "StartSelection";
-        if (aggregationProcess.getIpfsFile().isFull()) {
-            event = "StartAggregating";
-            aggregationProcess.setAggregating();
+        AggregationProcess aggregationProcess = null;
+        if (Exists(ctx, id)) {
+            aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
+            if (!aggregationProcess.isSelecting()) throw new ChaincodeException("Process is not in selection phase");
+        } else {
+            aggregationProcess = new AggregationProcess(id, IPFSConnection.getInstance().getFile(ipfsHash));
         }
 
-        serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
-        stub.setEvent(event, serAggregationProcess);
-        stub.putState(id, serAggregationProcess);
-        return serAggregationProcess;
-    }
+        int index = aggregationProcess.getIpfsFile().addOperatorKey(KeyStore.pqToPubKey(map.get("operator")));
 
-    /**
-     * A new public key for the post-quantum encryption scheme is added to the operator keys. The
-     * StartAggregation event occurs when all operator keys are gathered. Throws an exception when
-     * the data aggregation process is not in the selecting phase or when the given id does not
-     * correspond to a data aggregation process in the world state.
-     *
-     * @param ctx           the transaction context.
-     * @param id            the unique id of the aggregation process.
-     * @return the aggregation process.
-     */
-    @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public int AddOperator(Context ctx, String id) {
-        ChaincodeStub stub = retrieveStub(ctx, id);
-        Map<String, byte[]> map = stub.getTransient();
-        AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
-
-        if (!aggregationProcess.isSelecting()) throw new ChaincodeException("Process is not in selection phase");
-
-        int index = aggregationProcess.getIpfsFile().addOperatorKey(KeyStore.pqToPubKey(map.get("post-quantum")));
-        byte[] serAggregationProcess;
+        byte[] serAggregationProcess = null;
         if (aggregationProcess.getIpfsFile().isFull()) {
             aggregationProcess.setAggregating();
             serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
-            stub.setEvent("StartAggregation", serAggregationProcess);
-        } else serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
+            stub.setEvent("StartAggregating", serAggregationProcess);
+        } serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
 
         stub.putState(id, serAggregationProcess);
         return index;
@@ -98,10 +68,9 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      *
      * @param ctx        the transaction context.
      * @param id         the unique id of the aggregation process.
-     * @return the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String AddData(Context ctx, String id) {
+    public void Add(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
         AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
 
@@ -128,7 +97,6 @@ public class AggregationProcessContract implements ContractInterface, Contract {
 
         byte[] serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
         stub.putState(id, serAggregationProcess);
-        return new String(serAggregationProcess);
     }
 
     /**
@@ -140,7 +108,7 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      * @param id  the unique id of the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String Close(Context ctx, String id) {
+    public byte[] Close(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
 
         AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
@@ -150,7 +118,7 @@ public class AggregationProcessContract implements ContractInterface, Contract {
         aggregationProcess.setClosed();
         byte[] serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
         stub.putState(id, serAggregationProcess);
-        return new String(serAggregationProcess);
+        return serAggregationProcess;
     }
 
     /**
@@ -162,9 +130,9 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      * @return the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String Retrieve(Context ctx, String id) {
+    public byte[] Retrieve(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
-        return stub.getStringState(id);
+        return stub.getState(id);
     }
 
     /**
@@ -177,9 +145,9 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      * @return the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String Remove(Context ctx, String id) {
+    public byte[] Remove(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
-        String aggregationProcess = stub.getStringState(id);
+        byte[] aggregationProcess = stub.getState(id);
         stub.delState(id);
         return aggregationProcess;
     }

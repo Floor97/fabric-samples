@@ -24,6 +24,7 @@ public interface KeyStore {
     }
 
     static String pqPubKeyToString(NTRUEncryptionPublicKeyParameters pk) {
+        if(pk == null) return "null";
         ByteArrayOutputStream pubOut = new ByteArrayOutputStream();
         ByteArrayOutputStream parOut = new ByteArrayOutputStream();
         try {

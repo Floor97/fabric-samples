@@ -12,7 +12,7 @@ public class ApplicationModel {
 
     public static final String CC_NAME = "query";
     public static final String CONTRACT_NAME = "query.eventcontract";
-    public static final String CHANNEL_NAME = "mychannel";
+    public static final String CHANNEL_NAME = "asker";
 
     private ApplicationModel() {
         queryKeys = new HashMap<>();
