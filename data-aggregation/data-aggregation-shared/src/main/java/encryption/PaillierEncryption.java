@@ -1,4 +1,4 @@
-package applications.operator.generators;
+package encryption;
 
 import com.n1analytics.paillier.EncryptedNumber;
 import com.n1analytics.paillier.PaillierContext;

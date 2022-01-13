@@ -1,13 +1,14 @@
-package applications;
+package applications.asker;
 
 import com.n1analytics.paillier.PaillierPrivateKey;
 import com.n1analytics.paillier.PaillierPublicKey;
+import encryption.KeyStore;
 import org.bouncycastler.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyGenerationParameters;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyPairGenerator;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 import org.bouncycastler.pqc.crypto.ntru.NTRUParameters;
-import shared.Pair;
+import datatypes.values.Pair;
 
 public class DataQueryKeyStore implements KeyStore {
 

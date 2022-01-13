@@ -1,4 +1,4 @@
-import applications.KeyStore;
+import encryption.KeyStore;
 import com.n1analytics.paillier.EncryptedNumber;
 import com.n1analytics.paillier.PaillierContext;
 import com.n1analytics.paillier.PaillierPublicKey;

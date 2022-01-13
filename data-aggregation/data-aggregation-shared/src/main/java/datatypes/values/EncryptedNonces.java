@@ -1,13 +1,12 @@
 package datatypes.values;
 
-import applications.operator.generators.NTRUEncryption;
+import encryption.NTRUEncryption;
 import datatypes.aggregationprocess.AggregationProcess;
 import org.bouncycastler.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.json.JSONObject;
 
 import java.math.BigInteger;
-import java.util.Arrays;
 
 public class EncryptedNonces {
 

@@ -1,6 +1,5 @@
-package applications.operator.generators;
+package encryption;
 
-import applications.KeyStore;
 import org.bouncycastler.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;

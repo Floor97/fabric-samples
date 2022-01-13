@@ -1,4 +1,4 @@
-package shared;
+package datatypes.values;
 
 public class Pair <C,E> {
 

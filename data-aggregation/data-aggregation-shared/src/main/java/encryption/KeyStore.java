@@ -1,4 +1,4 @@
-package applications;
+package encryption;
 
 import com.n1analytics.paillier.PaillierPublicKey;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionParameters;

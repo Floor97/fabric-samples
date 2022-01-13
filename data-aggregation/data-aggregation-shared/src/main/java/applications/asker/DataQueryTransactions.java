@@ -1,14 +1,12 @@
 package applications.asker;
 
-import applications.DataQueryKeyStore;
-import applications.IdFactory;
-import applications.KeyStore;
+import encryption.KeyStore;
 import com.n1analytics.paillier.PaillierPublicKey;
 import datatypes.dataquery.DataQuery;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
-import shared.Pair;
+import datatypes.values.Pair;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -16,7 +14,7 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
-public class QueryTransactions {
+public class DataQueryTransactions {
     private static final Scanner scan = new Scanner(System.in);
 
     public static Pair<String, DataQueryKeyStore> start(Contract contract) throws ContractException, InterruptedException, TimeoutException {

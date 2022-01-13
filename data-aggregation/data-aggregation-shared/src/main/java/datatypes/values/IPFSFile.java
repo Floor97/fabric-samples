@@ -1,6 +1,6 @@
 package datatypes.values;
 
-import applications.KeyStore;
+import encryption.KeyStore;
 import io.ipfs.multihash.Multihash;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 

@@ -1,10 +1,12 @@
-package applications.operator.generators;
+package applications.operator;
 
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonce;
 import datatypes.values.EncryptedNonces;
+import encryption.NTRUEncryption;
+import encryption.PaillierEncryption;
 import org.bouncycastler.crypto.InvalidCipherTextException;
-import shared.Pair;
+import datatypes.values.Pair;
 
 import java.math.BigInteger;
 import java.util.Random;

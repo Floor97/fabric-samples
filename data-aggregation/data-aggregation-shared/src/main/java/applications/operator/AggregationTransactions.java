@@ -1,6 +1,6 @@
 package applications.operator;
 
-import applications.KeyStore;
+import encryption.KeyStore;
 import datatypes.aggregationprocess.AggregationProcess;
 import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;

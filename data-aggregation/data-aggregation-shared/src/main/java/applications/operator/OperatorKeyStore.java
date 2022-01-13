@@ -1,6 +1,6 @@
 package applications.operator;
 
-import applications.KeyStore;
+import encryption.KeyStore;
 import org.bouncycastler.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyGenerationParameters;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyPairGenerator;
