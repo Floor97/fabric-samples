@@ -86,6 +86,12 @@ public class DataQuery {
         this.incFlag = true;
     }
 
+    /**
+     * Deserializes the JSON into a DataQuery object.
+     *
+     * @param data the JSON.
+     * @return the DataQuery object.
+     */
     public static DataQuery deserialize(byte[] data) {
         JSONObject json = new JSONObject(new String(data, UTF_8));
 

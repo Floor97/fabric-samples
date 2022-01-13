@@ -22,15 +22,16 @@ public class IPFSConnection {
         }
     }
 
-    public static IPFSConnection getInstance() {
-        if(IPFSConnection.ipfsConnection == null) ipfsConnection = new IPFSConnection();
-        return ipfsConnection;
-    }
-
     public IPFS getIpfs() {
         return ipfs;
     }
 
+    /**
+     * Adds a new file to be hosted on IPFS.
+     *
+     * @param serFile the IPFS file.
+     * @return the hash of the new file.
+     */
     public Multihash addFile(IPFSFile serFile) {
         NamedStreamable.ByteArrayWrapper file = new NamedStreamable.ByteArrayWrapper(IPFSFile.serialize(serFile));
         MerkleNode addResult = null;
@@ -42,10 +43,22 @@ public class IPFSConnection {
         return addResult.hash;
     }
 
+    /**
+     * Retrieves a file from IPFS using the hash.
+     *
+     * @param hash the hash associated with the file.
+     * @return the IPFS file.
+     */
     public IPFSFile getFile(String hash) {
         return IPFSConnection.getInstance().getFile(Multihash.fromHex(hash));
     }
 
+    /**
+     * Retrieves a file from IPFS using the hash.
+     *
+     * @param hash the hash associated with the file.
+     * @return the IPFS file.
+     */
     public IPFSFile getFile(Multihash hash) {
         byte[] file = null;
         try {
@@ -55,4 +68,10 @@ public class IPFSConnection {
         }
         return IPFSFile.deserialize(file, -1);
     }
+
+    public static IPFSConnection getInstance() {
+        if (IPFSConnection.ipfsConnection == null) ipfsConnection = new IPFSConnection();
+        return ipfsConnection;
+    }
+
 }

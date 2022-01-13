@@ -10,14 +10,32 @@ public class EncryptedData {
         this.exponent = exponent;
     }
 
+    /**
+     * Serializes the EncryptedData object into a String.
+     *
+     * @param encData the EncryptedData object.
+     * @return the serialized EncryptedData object.
+     */
     public static String serialize(EncryptedData encData) {
         return encData.data + ":" + encData.exponent;
     }
 
+    /**
+     * The EncryptedData object is deserialized.
+     *
+     * @param encData the serialized EncryptedData object.
+     * @return the deserialized EncryptedData object.
+     */
     public static EncryptedData deserialize(byte[] encData) {
         return EncryptedData.deserialize(new String(encData));
     }
 
+    /**
+     * The EncryptedData object is deserialized.
+     *
+     * @param encData the serialized EncryptedData object.
+     * @return the deserialized EncryptedData object.
+     */
     public static EncryptedData deserialize(String encData) {
         String[] parts = encData.split(":", 2);
         return new EncryptedData(parts[0], parts[1]);

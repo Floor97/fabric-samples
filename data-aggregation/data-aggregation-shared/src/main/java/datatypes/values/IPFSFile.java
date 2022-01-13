@@ -27,10 +27,33 @@ public class IPFSFile {
         this.nonces = builder.nonces;
     }
 
+    public Multihash getHash() {
+        return hash;
+    }
+
+    public IPFSFile setHash(Multihash hash) {
+        this.hash = hash;
+        return this;
+    }
+
+    /**
+     * Deserializes the IPFSFile object.
+     *
+     * @param file        the deserialized IPFSfile.
+     * @param nrOperators the number of operators involved in the process the file corresponds to.
+     * @return the IPFSFile.
+     */
     public static IPFSFile deserialize(byte[] file, int nrOperators) {
         return IPFSFile.deserialize(new String(file), nrOperators);
     }
 
+    /**
+     * Deserializes the IPFSFile object.
+     *
+     * @param file        the deserialized IPFSfile.
+     * @param nrOperators the number of operators involved in the process the file corresponds to.
+     * @return the IPFSFile.
+     */
     public static IPFSFile deserialize(String file, int nrOperators) {
         String[] parts = file.split("\n", 5);
 
@@ -55,6 +78,12 @@ public class IPFSFile {
                 .build();
     }
 
+    /**
+     * Serializes the IPFSFile object.
+     *
+     * @param file the IPFSFile object.
+     * @return the serialized IPFSFile object.
+     */
     public static byte[] serialize(IPFSFile file) {
         StringBuilder builder = new StringBuilder();
         builder.append(file.paillierKey)
@@ -73,15 +102,6 @@ public class IPFSFile {
         } else builder.append("\nnull");
 
         return builder.toString().getBytes(StandardCharsets.UTF_8);
-    }
-
-    public Multihash getHash() {
-        return hash;
-    }
-
-    public IPFSFile setHash(Multihash hash) {
-        this.hash = hash;
-        return this;
     }
 
     public String getPaillierKey() {

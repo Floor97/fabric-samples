@@ -20,7 +20,7 @@ public class DataQuerySettings {
 
     @Override
     public String toString() {
-        return  "    number of operators: " + this.nrOperators
+        return "    number of operators: " + this.nrOperators
                 + ",\n    duration: " + this.duration;
     }
 }
