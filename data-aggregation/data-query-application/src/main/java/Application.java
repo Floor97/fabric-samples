@@ -5,31 +5,32 @@ import org.apache.log4j.Logger;
 import org.hyperledger.fabric.gateway.*;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.security.PrivateKey;
-import java.security.cert.X509Certificate;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.InvalidKeyException;
+import java.security.PrivateKey;
 import java.security.cert.CertificateException;
-import java.io.Reader;
+import java.security.cert.X509Certificate;
 import java.util.Objects;
-
-import org.hyperledger.fabric.gateway.Identities;
-import org.hyperledger.fabric.gateway.Wallet;
-import org.hyperledger.fabric.gateway.Wallets;
-import org.hyperledger.fabric.gateway.Identity;
 
 public class Application {
 
+    /**
+     * The identity of the client is created and the application connects to the Hyperledger
+     * Fabric network using the Gateway. The channel being connected to is asker.
+     *
+     * @param args the args of the main method.
+     */
     public static void main(String[] args) {
         Logger.getRootLogger().setLevel(Level.FATAL);
         InternalLoggerFactory.setDefaultFactory(Slf4JLoggerFactory.INSTANCE);
 
         Gateway.Builder builder = Gateway.createBuilder();
         try {
-            Path walletPath = Paths.get( ".", "wallet");
+            Path walletPath = Paths.get(".", "wallet");
             Wallet wallet = Wallets.newFileSystemWallet(walletPath);
 
             insertIdentity(wallet);
@@ -38,42 +39,38 @@ public class Application {
             Path connectionProfile = Paths.get("..", "gateway", "connection-org1.yaml");
             builder.identity(wallet, username).networkConfig(connectionProfile).discovery(true);
 
-            try(Gateway gateway = builder.connect()) {
-                Network network = gateway.getNetwork(ApplicationModel.CHANNEL_NAME);
-                Contract contract = network.getContract(ApplicationModel.CC_NAME, ApplicationModel.CONTRACT_NAME);
+            try (Gateway gateway = builder.connect()) {
+                Network network = gateway.getNetwork("asker");
+                Contract contract = network.getContract("query", "query.eventcontract");
 
                 ApplicationController.applicationLoop(contract);
             }
-        } catch(IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             System.exit(-1);
         }
 
     }
 
-    private static X509Certificate readX509Certificate(final Path certificatePath) throws IOException, CertificateException {
-        try (Reader certificateReader = Files.newBufferedReader(certificatePath, StandardCharsets.UTF_8)) {
-            return Identities.readX509Certificate(certificateReader);
-        }
-    }
-
-    private static PrivateKey getPrivateKey(final Path privateKeyPath) throws IOException, InvalidKeyException {
-        try (Reader privateKeyReader = Files.newBufferedReader(privateKeyPath, StandardCharsets.UTF_8)) {
-            return Identities.readPrivateKey(privateKeyReader);
-        }
-    }
-
+    /**
+     * The identity the client uses is created.
+     *
+     * @param wallet the wallet the application uses.
+     */
     private static void insertIdentity(Wallet wallet) {
         Path credentialPath = Paths.get("..", "..", "test-network", "organizations", "peerOrganizations", "org1.example.com", "users", "User1@org1.example.com", "msp");
         Path certificatePath = credentialPath.resolve(Paths.get("signcerts", "cert.pem"));
         Path privateKeyPath = Objects.requireNonNull(credentialPath.resolve(Paths.get("keystore")).toFile().listFiles())[0].toPath();
-        //Path privateKeyPath = credentialPath.resolve(Paths.get("keystore", "priv_sk"));
 
         X509Certificate certificate;
         PrivateKey privateKey;
         try {
-            certificate = readX509Certificate(certificatePath);
-            privateKey = getPrivateKey(privateKeyPath);
+            try (Reader certificateReader = Files.newBufferedReader(certificatePath, StandardCharsets.UTF_8)) {
+                certificate = Identities.readX509Certificate(certificateReader);
+            }
+            try (Reader privateKeyReader = Files.newBufferedReader(privateKeyPath, StandardCharsets.UTF_8)) {
+                privateKey = Identities.readPrivateKey(privateKeyReader);
+            }
         } catch (CertificateException | InvalidKeyException | IOException e) {
             e.printStackTrace();
             return;

@@ -19,6 +19,13 @@ import java.util.function.Consumer;
 
 public class ApplicationController {
 
+    /**
+     * The main loop of the application is started. The user will be prompted with options and can
+     * decide by entering a name which functionality to use. The existing functionalities are
+     * exists, start, close, retrieve, remove and exit.
+     *
+     * @param contract the data query contract.
+     */
     public static void applicationLoop(Contract contract) {
         ApplicationController.setContractListener(contract);
         Scanner scan = new Scanner(System.in);
@@ -59,6 +66,11 @@ public class ApplicationController {
         }
     }
 
+    /**
+     * The listener for the data query contract is created and set.
+     *
+     * @param contract the data query contract.
+     */
     private static void setContractListener(Contract contract) {
         Consumer<ContractEvent> consumer = contractEvent -> {
             if (!"DoneQuery".equals(contractEvent.getName())) return;

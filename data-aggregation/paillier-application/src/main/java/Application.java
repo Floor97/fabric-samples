@@ -20,7 +20,8 @@ public class Application {
 
     /**
      * The identity of the client is created and the application connects to the Hyperledger
-     * Fabric network using the Gateway.
+     * Fabric network using the Gateway. The channels being connected to are participant and
+     * asker.
      *
      * @param args the args of the main method.
      */

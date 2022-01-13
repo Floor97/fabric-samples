@@ -25,7 +25,8 @@ public class ApplicationController {
 
     /**
      * The main loop of the application is started. The user will be prompted with options and can
-     * decide by entering a name which functionality to use.
+     * decide by entering a name which functionality to use. The existing functionalities are
+     * exists and exit.
      *
      * @param contractAgg   the aggregation process contract.
      * @param contractQuery the data query contract.
@@ -33,8 +34,8 @@ public class ApplicationController {
     public static void applicationLoop(Contract contractAgg, Contract contractQuery) {
         ApplicationController.setDataAggregationContractListener(contractAgg);
         ApplicationController.setQueryContractListener(contractQuery, contractAgg);
-
         Scanner scan = new Scanner(System.in);
+
         System.out.println("username: ");
         IdFactory.getInstance().setAskerName(scan.next());
 

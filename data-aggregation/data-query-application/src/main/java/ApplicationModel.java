@@ -10,13 +10,37 @@ public class ApplicationModel {
     private final HashMap<String, DataQueryKeyStore> queryKeys;
     private final HashSet<String> ids;
 
-    public static final String CC_NAME = "query";
-    public static final String CONTRACT_NAME = "query.eventcontract";
-    public static final String CHANNEL_NAME = "asker";
-
     private ApplicationModel() {
         queryKeys = new HashMap<>();
         ids = new HashSet<>();
+    }
+
+    /**
+     * Adds the id to the list of ids that the application is keeping track of. Also adds the
+     * key used by the operator for this process.
+     *
+     * @param id   the unique id of the process.
+     * @param keys the key the operator uses in this process.
+     */
+    public void addProcess(String id, DataQueryKeyStore keys) {
+        this.addKey(id, keys);
+        ids.add(id);
+    }
+
+    /**
+     * Removes the id and key of the process from the respective lists.
+     *
+     * @param id the unique id of the process.
+     * @return true if the process was in the ids list, false otherwise.
+     */
+    public boolean removeProcess(String id) {
+        queryKeys.remove(id);
+        return ids.remove(id);
+    }
+
+    public static ApplicationModel getInstance() {
+        if (applicationModel == null) applicationModel = new ApplicationModel();
+        return applicationModel;
     }
 
     public DataQueryKeyStore getKey(String id) {
@@ -33,20 +57,5 @@ public class ApplicationModel {
 
     public boolean containsId(String id) {
         return ids.contains(id);
-    }
-
-    public boolean removeProcess(String id) {
-        queryKeys.remove(id);
-        return ids.remove(id);
-    }
-
-    public void addProcess(String id, DataQueryKeyStore keys) {
-        this.addKey(id, keys);
-        ids.add(id);
-    }
-
-    public static ApplicationModel getInstance() {
-        if(applicationModel == null) applicationModel = new ApplicationModel();
-        return applicationModel;
     }
 }
