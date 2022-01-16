@@ -9,7 +9,7 @@ public class ApplicationModel {
 
     private final HashMap<String, OperatorKeyStore> queryKeys;
     private final HashSet<String> ids;
-    private int operatorThreshold = 10;
+    private int operatorThreshold = 0;
 
     private ApplicationModel() {
         queryKeys = new HashMap<>();

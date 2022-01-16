@@ -1,18 +1,18 @@
-import applications.IdFactory;
-import applications.KeyStore;
+import applications.asker.IdFactory;
 import applications.operator.AggregationTransactions;
+import applications.operator.DataGenerator;
 import applications.operator.OperatorKeyStore;
 import applications.operator.QueryTransactions;
-import applications.operator.generators.DataGenerator;
 import datatypes.aggregationprocess.AggregationProcess;
 import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonces;
+import datatypes.values.Pair;
+import encryption.KeyStore;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractEvent;
 import org.hyperledger.fabric.gateway.ContractException;
-import shared.Pair;
 
 import java.util.Arrays;
 import java.util.Scanner;
@@ -35,9 +35,6 @@ public class ApplicationController {
         ApplicationController.setDataAggregationContractListener(contractAgg);
         ApplicationController.setQueryContractListener(contractQuery, contractAgg);
         Scanner scan = new Scanner(System.in);
-
-        System.out.println("username: ");
-        IdFactory.getInstance().setAskerName(scan.next());
 
         while (true) {
             System.out.println("Please select a transaction: exists. Type exit to stop.");
@@ -68,10 +65,12 @@ public class ApplicationController {
      */
     private static void setQueryContractListener(Contract contractQuery, Contract contractAgg) {
         Consumer<ContractEvent> consumer = contractEvent -> {
-            DataQuery data = DataQuery.deserialize(contractEvent.getPayload().get());
+            System.out.println("Event occured: " + contractEvent.getName());
             try {
+                DataQuery data = DataQuery.deserialize(contractEvent.getPayload().get());
                 switch (contractEvent.getName()) {
                     case "StartQuery":
+                        System.out.println("StartQuery");
                         OperatorKeyStore keystore = AggregationTransactions.start(contractAgg, data);
                         ApplicationModel.getInstance().addProcess(data.getId(), keystore);
                         if (keystore.getIndex() != 0) return;
@@ -79,6 +78,7 @@ public class ApplicationController {
                         ApplicationController.eventTimeLimit(contractQuery, contractAgg, data, keystore);
                         break;
                     case "ResultQuery":
+                        System.out.println("ResultQuery");
                         OperatorKeyStore opKeystore = ApplicationModel.getInstance().getKey(data.getId());
                         if (opKeystore == null) return;
 
@@ -92,14 +92,15 @@ public class ApplicationController {
                                 opKeystore.getIndex()
                         );
                     case "RemoveQuery":
+                        System.out.println("RemoveQuery");
                         if (ApplicationModel.getInstance().removeProcess(data.getId()))
                             AggregationTransactions.remove(contractAgg, data.getId());
                         break;
                 }
-            } catch (InterruptedException | TimeoutException | InvalidCipherTextException e) {
-                e.printStackTrace();
             } catch (ContractException e) {
                 System.out.println(e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         };
         contractQuery.addContractListener(consumer);
@@ -114,10 +115,11 @@ public class ApplicationController {
         Consumer<ContractEvent> consumer = contractEvent -> {
             try {
                 AggregationProcess aggregationProcess = AggregationProcess.deserialize(contractEvent.getPayload().get());
-                if ("StartAggregation".equals(contractEvent.getName())
+                System.out.println("Event: " + contractEvent.getName());
+                if ("StartAggregating".equals(contractEvent.getName())
                         && (ApplicationModel.getInstance().getOperatorThreshold() <= aggregationProcess.getIpfsFile().getOperatorKeys().length
                         || ApplicationModel.getInstance().getKey(aggregationProcess.getId()) != null)) {
-
+                    System.out.println("StartAggregation");
                     Pair<EncryptedData, EncryptedNonces> dataAndNonces = DataGenerator.generateDataAndNonces(
                             aggregationProcess.getIpfsFile().getPaillierKey(),
                             Arrays.stream(aggregationProcess.getIpfsFile().getOperatorKeys()).map(KeyStore::pqPubKeyToString).toArray(String[]::new)

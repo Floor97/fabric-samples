@@ -8,6 +8,7 @@ import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,10 +69,8 @@ public class DataQueryTransactions {
      * @param contract the data query contract.
      * @throws ContractException    when an exception occurs in the data query contract. This occurs
      *                              when the data query referenced by the id does not exist.
-     * @throws InterruptedException thrown by the submit method.
-     * @throws TimeoutException     thrown by the submit method.
      */
-    public static void retrieve(Contract contract) throws ContractException, InterruptedException, TimeoutException {
+    public static void retrieve(Contract contract) throws ContractException, IOException {
         printResponse(
                 contract.evaluateTransaction(
                         "Retrieve",
@@ -89,7 +88,7 @@ public class DataQueryTransactions {
      * @throws InterruptedException thrown by the submit method.
      * @throws TimeoutException     thrown by the submit method.
      */
-    public static void remove(Contract contract) throws ContractException, InterruptedException, TimeoutException {
+    public static void remove(Contract contract) throws ContractException, InterruptedException, TimeoutException, IOException {
         printResponse(
                 contract.submitTransaction(
                         "Remove",
@@ -129,7 +128,7 @@ public class DataQueryTransactions {
      *
      * @param response the response of a data query contract transaction.
      */
-    private static void printResponse(byte[] response) {
+    private static void printResponse(byte[] response) throws IOException {
         DataQuery serDataQuery = DataQuery.deserialize(response);
         System.out.println("Response: " + serDataQuery);
     }

@@ -13,11 +13,10 @@ public class EncryptedData {
     /**
      * Serializes the EncryptedData object into a String.
      *
-     * @param encData the EncryptedData object.
      * @return the serialized EncryptedData object.
      */
-    public static String serialize(EncryptedData encData) {
-        return encData.data + ":" + encData.exponent;
+    public String serialize() {
+        return this.data + ":" + this.exponent;
     }
 
     /**

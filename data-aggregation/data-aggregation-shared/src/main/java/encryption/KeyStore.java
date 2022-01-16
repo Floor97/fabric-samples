@@ -81,9 +81,11 @@ public interface KeyStore {
      * @return the NTRUEncrypt public key.
      */
     static NTRUEncryptionPublicKeyParameters pqToPubKey(String str) {
+        if(str.equals("null")) return null;
+
         String[] parts = str.split(":", 2);
-        byte[] pubKey = Base64.getDecoder().decode(parts[0]);
-        byte[] stParams = Base64.getDecoder().decode(parts[1]);
+        byte[] pubKey = parts[0].equals("null") ? null : Base64.getDecoder().decode(parts[0]);
+        byte[] stParams = parts[1].equals("null") ? null : Base64.getDecoder().decode(parts[1]);
         NTRUEncryptionParameters params = null;
 
         try {

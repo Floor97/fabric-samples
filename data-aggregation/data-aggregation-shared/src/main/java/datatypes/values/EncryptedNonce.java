@@ -17,6 +17,7 @@ public class EncryptedNonce {
      * @return the EncryptedNonce object.
      */
     public static EncryptedNonce deserialize(String serNonce) {
+        if(serNonce.equals("null")) return null;
         return new EncryptedNonce(Base64.getDecoder().decode(serNonce));
     }
 

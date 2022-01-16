@@ -1,11 +1,14 @@
 package datatypes.aggregationprocess;
 
+import datatypes.values.AggregationIPFSFile;
 import datatypes.values.IPFSConnection;
 import datatypes.values.IPFSFile;
 import io.ipfs.multihash.Multihash;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 import org.json.JSONObject;
+
+import java.io.IOException;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -16,26 +19,26 @@ public class AggregationProcess {
     private final String id;
 
     @Property()
-    private final IPFSFile ipfsFile;
+    private final AggregationIPFSFile ipfsFile;
 
     @Property()
     private AggregationProcessState state = AggregationProcessState.SELECTING;
 
-    public AggregationProcess(String id, IPFSFile ipfsFile) {
+    public AggregationProcess(String id, AggregationIPFSFile ipfsFile) {
         this.id = id;
         this.ipfsFile = ipfsFile;
     }
 
-    public AggregationProcess(String id, Multihash hash) {
+    public AggregationProcess(String id, Multihash hash) throws IOException {
         this.id = id;
-        this.ipfsFile = IPFSConnection.getInstance().getFile(hash);
+        this.ipfsFile = IPFSConnection.getInstance().getAggregationIPFSFile(hash);
     }
 
     public String getId() {
         return id;
     }
 
-    public IPFSFile getIpfsFile() {
+    public AggregationIPFSFile getIpfsFile() {
         return ipfsFile;
     }
 
@@ -71,7 +74,7 @@ public class AggregationProcess {
         JSONObject json = new JSONObject(new String(data, UTF_8));
 
         String id = json.getString("id");
-        IPFSFile ipfsFile = IPFSFile.deserialize(json.getString("file"), -1);
+        AggregationIPFSFile ipfsFile = AggregationIPFSFile.deserialize(json.getString("file"));
 
         AggregationProcess aggregationProcess = new AggregationProcess(id, ipfsFile);
         aggregationProcess.state = json.getEnum(AggregationProcessState.class, "state");
@@ -85,12 +88,12 @@ public class AggregationProcess {
      * @param aggregationProcess the aggregation process.
      * @return the JSON value of the aggregation process object.
      */
-    public static byte[] serialize(AggregationProcess aggregationProcess) {
-        return new JSONObject()
+    public static String serialize(AggregationProcess aggregationProcess) {
+        JSONObject json = new JSONObject()
                 .put("id", aggregationProcess.id)
-                .put("file", aggregationProcess.ipfsFile)
-                .put("state", aggregationProcess.state)
-                .toString().getBytes(UTF_8);
+                .put("file", aggregationProcess.ipfsFile.serialize())
+                .put("state", aggregationProcess.state);
+        return json.toString();
     }
 
     @Override

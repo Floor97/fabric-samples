@@ -1,5 +1,6 @@
 package applications.operator;
 
+import datatypes.values.AggregationIPFSFile;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonce;
 import datatypes.values.IPFSFile;
@@ -31,15 +32,15 @@ public class QueryTransactions {
      * @throws InterruptedException thrown by the submit method.
      * @throws TimeoutException     thrown by the submit method.
      */
-    public static void add(Contract contract, String id, IPFSFile file, EncryptedNonce condensedNonces, int index)
+    public static void add(Contract contract, String id, AggregationIPFSFile file, EncryptedNonce condensedNonces, int index)
             throws ContractException, InterruptedException, TimeoutException {
 
         Map<String, byte[]> trans = new HashMap<>();
-        trans.put("data", EncryptedData.serialize(file.getData()).getBytes(StandardCharsets.UTF_8));
+        trans.put("data", file.getData().serialize().getBytes(StandardCharsets.UTF_8));
         trans.put("nonces", EncryptedNonce.serialize(condensedNonces).getBytes(StandardCharsets.UTF_8));
         contract.createTransaction("Add").setTransient(trans).submit(
                 id,
-                String.valueOf(file.getNonces().length),
+                String.valueOf(file.getNonces().size()),
                 String.valueOf(index)
         );
     }

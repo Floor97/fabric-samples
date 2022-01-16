@@ -1,17 +1,19 @@
-import applications.DataQueryKeyStore;
-import applications.IdFactory;
-import applications.asker.QueryTransactions;
-import applications.operator.generators.NTRUEncryption;
-import applications.operator.generators.PaillierEncryption;
+import applications.asker.DataQueryKeyStore;
+import applications.asker.IdFactory;
+import applications.asker.DataQueryTransactions;
 import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonce;
 import datatypes.values.EncryptedNonces;
+import datatypes.values.Pair;
+import encryption.NTRUEncryption;
+import encryption.PaillierEncryption;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractEvent;
 import org.hyperledger.fabric.gateway.ContractException;
-import shared.Pair;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
@@ -38,20 +40,20 @@ public class ApplicationController {
             try {
                 switch (scan.next()) {
                     case "start":
-                        Pair<String, DataQueryKeyStore> storePair = QueryTransactions.start(contract);
+                        Pair<String, DataQueryKeyStore> storePair = DataQueryTransactions.start(contract);
                         ApplicationModel.getInstance().addKey(storePair.getP1(), storePair.getP2());
                         break;
                     case "close":
-                        QueryTransactions.close(contract);
+                        DataQueryTransactions.close(contract);
                         break;
                     case "retrieve":
-                        QueryTransactions.retrieve(contract);
+                        DataQueryTransactions.retrieve(contract);
                         break;
                     case "remove":
-                        QueryTransactions.remove(contract);
+                        DataQueryTransactions.remove(contract);
                         break;
                     case "exists":
-                        QueryTransactions.exists(contract);
+                        DataQueryTransactions.exists(contract);
                         break;
                     case "exit":
                         System.exit(0);
@@ -60,7 +62,8 @@ public class ApplicationController {
                         System.out.println("Unrecognised transaction");
                         break;
                 }
-            } catch (ContractException | InterruptedException | TimeoutException e) {
+            } catch (ContractException | InterruptedException | TimeoutException | IOException e) {
+                System.err.println("Error occured in handling transaction!");
                 e.printStackTrace();
             }
         }
@@ -73,21 +76,24 @@ public class ApplicationController {
      */
     private static void setContractListener(Contract contract) {
         Consumer<ContractEvent> consumer = contractEvent -> {
+            System.out.println("Event occured: " + contractEvent.getName());
             if (!"DoneQuery".equals(contractEvent.getName())) return;
-
             try {
                 DataQuery dataQuery = DataQuery.deserialize(contractEvent.getPayload().get());
                 EncryptedData data = dataQuery.getIpfsFile().getData();
-                EncryptedNonces[] nonces = dataQuery.getIpfsFile().getNonces();
+                EncryptedNonces nonces = dataQuery.getIpfsFile().getNonces();
                 DataQueryKeyStore keystore = ApplicationModel.getInstance().getKey(dataQuery.getId());
                 BigInteger dataAndNonces = PaillierEncryption.decrypt(data, keystore.getPaillierKeys());
-
-                for (EncryptedNonces nonce : nonces) {
-                    byte[] decryptedNonce = NTRUEncryption.decrypt(nonce.getNonces()[0].getNonce(), keystore.getPostQuantumKeys());
+                for (EncryptedNonce nonce : nonces.getNonces()) {
+                    byte[] decryptedNonce = NTRUEncryption.decrypt(nonce.getNonce(), keystore.getPostQuantumKeys());
                     dataAndNonces = dataAndNonces.subtract(new BigInteger(new String(decryptedNonce)));
                 }
                 System.out.println("Result of " + dataQuery.getId() + " is " + dataAndNonces.toString());
-            } catch (InvalidCipherTextException e) {
+            } catch (IOException e) {
+                System.err.println("Could not deserialize data query asset!");
+                e.printStackTrace();
+            } catch(InvalidCipherTextException e) {
+                System.err.println("Could not decrypt nonces with NTRUEncrypt!");
                 e.printStackTrace();
             }
         };
