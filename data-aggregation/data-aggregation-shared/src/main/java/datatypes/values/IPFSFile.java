@@ -1,6 +1,6 @@
 package datatypes.values;
 
-import encryption.KeyStore;
+import encryption.NTRUEncryption;
 import io.ipfs.multihash.Multihash;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 
@@ -26,7 +26,7 @@ public class IPFSFile {
     }
 
     public Multihash getHash() throws IOException {
-        if(hash == null) createHash();
+        if (hash == null) createHash();
         return hash;
     }
 
@@ -42,7 +42,7 @@ public class IPFSFile {
      */
     public static IPFSFile deserialize(String file) {
         String[] parts = file.split("\n", 3);
-        return new IPFSFile(parts[0], KeyStore.pqToPubKey(parts[1]))
+        return new IPFSFile(parts[0], NTRUEncryption.deserialize(parts[1]))
                 .setData(EncryptedData.deserialize(parts[2]));
     }
 
@@ -53,7 +53,7 @@ public class IPFSFile {
      */
     public String serialize() {
         return this.paillierKey + "\n" +
-                KeyStore.pqPubKeyToString(this.postqKey) + "\n" +
+                NTRUEncryption.serialize(this.postqKey) + "\n" +
                 data.serialize();
     }
 

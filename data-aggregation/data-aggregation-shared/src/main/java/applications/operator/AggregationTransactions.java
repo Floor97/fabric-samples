@@ -4,7 +4,8 @@ import datatypes.aggregationprocess.AggregationProcess;
 import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonces;
-import encryption.KeyStore;
+import encryption.NTRUEncryption;
+import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyGenerationParameters;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 
@@ -34,10 +35,10 @@ public class AggregationTransactions {
      * @throws TimeoutException     thrown by the submit method.
      */
     public static OperatorKeyStore start(Contract contractAgg, DataQuery dataQuery) throws ContractException, InterruptedException, TimeoutException, IOException {
-        OperatorKeyStore keystore = OperatorKeyStore.createInstance();
+        OperatorKeyStore keystore = new OperatorKeyStore(NTRUEncryptionKeyGenerationParameters.APR2011_743_FAST);
         Map<String, byte[]> transientData = new HashMap<>();
 
-        transientData.put("operator", KeyStore.pqPubKeyToString(keystore.getPublicKey()).getBytes(StandardCharsets.UTF_8));
+        transientData.put("operator", NTRUEncryption.serialize(keystore.getNtruEncryption().getPublic()).getBytes(StandardCharsets.UTF_8));
         byte[] index = contractAgg.createTransaction("Start").setTransient(transientData).submit(
                 dataQuery.getId(),
                 String.valueOf(dataQuery.getSettings().getNrOperators()),

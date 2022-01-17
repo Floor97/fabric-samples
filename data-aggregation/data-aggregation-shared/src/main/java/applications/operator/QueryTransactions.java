@@ -1,9 +1,6 @@
 package applications.operator;
 
-import datatypes.values.AggregationIPFSFile;
-import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonce;
-import datatypes.values.IPFSFile;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 
@@ -37,7 +34,7 @@ public class QueryTransactions {
 
         Map<String, byte[]> trans = new HashMap<>();
         trans.put("data", file.getData().serialize().getBytes(StandardCharsets.UTF_8));
-        trans.put("nonces", EncryptedNonce.serialize(condensedNonces).getBytes(StandardCharsets.UTF_8));
+        trans.put("nonces", condensedNonces.serialize().getBytes(StandardCharsets.UTF_8));
         contract.createTransaction("Add").setTransient(trans).submit(
                 id,
                 String.valueOf(file.getNonces().size()),

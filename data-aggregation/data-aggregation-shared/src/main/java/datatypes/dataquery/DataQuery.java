@@ -1,8 +1,7 @@
 package datatypes.dataquery;
 
-import datatypes.values.DataQueryIPFSFile;
+import applications.asker.DataQueryIPFSFile;
 import datatypes.values.IPFSConnection;
-import datatypes.values.IPFSFile;
 import io.ipfs.multihash.Multihash;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
@@ -40,6 +39,66 @@ public class DataQuery {
         this.nrParticipants = nrParticipants;
     }
 
+    public enum DataQueryState {
+        WAITING, DONE, CLOSED;
+
+        @Override
+        public String toString() {
+            if (this == DataQueryState.WAITING) return "Waiting";
+            if (this == DataQueryState.DONE) return "Done";
+            else return "Closed";
+        }
+    }
+
+    /**
+     * Deserializes the JSON into a DataQuery object.
+     *
+     * @param data the JSON.
+     * @return the DataQuery object.
+     */
+    public static DataQuery deserialize(byte[] data) throws IOException {
+        JSONObject json = new JSONObject(new String(data, UTF_8));
+
+        String id = json.getString("id");
+        int nrOperators = json.getInt("nrOperators");
+        long endTime = json.getLong("duration");
+        int nrParticipants = json.getInt("nrParticipants");
+        boolean incFlag = json.getBoolean("incFlag");
+        DataQueryIPFSFile file = IPFSConnection.getInstance().getDataQueryIPFSFile(Multihash.fromHex(json.getString("hash")));
+
+        DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, endTime), file, nrParticipants);
+
+        if (incFlag) dataQuery.setIncFlag();
+        dataQuery.state = json.getEnum(DataQueryState.class, "state");
+
+        return dataQuery;
+    }
+
+    /**
+     * Serializes the DataQuery object into JSON.
+     *
+     * @return the JSON value of the data query object.
+     */
+    public String serialize() throws IOException {
+        JSONObject json = new JSONObject()
+                .put("id", this.id)
+                .put("nrOperators", this.getSettings().getNrOperators())
+                .put("duration", this.getSettings().getDuration())
+                .put("nrParticipants", this.nrParticipants)
+                .put("state", this.state)
+                .put("incFlag", this.incFlag)
+                .put("hash", this.ipfsFile.getHash().toHex());
+        return json.toString();
+    }
+
+    @Override
+    public String toString() {
+        return "queryID: " + this.id +
+                ",\nsettings:\n " + this.settings +
+                ",\nprocess data: " + this.ipfsFile +
+                ",\n state: " + this.state;
+    }
+
     public String getId() {
         return id;
     }
@@ -53,7 +112,7 @@ public class DataQuery {
     }
 
     public void setNrParticipants(int nrParticipants) {
-        if(this.nrParticipants == -1)
+        if (this.nrParticipants == -1)
             this.nrParticipants = nrParticipants;
     }
 
@@ -96,64 +155,4 @@ public class DataQuery {
         this.incFlag = true;
     }
 
-    /**
-     * Deserializes the JSON into a DataQuery object.
-     *
-     * @param data the JSON.
-     * @return the DataQuery object.
-     */
-    public static DataQuery deserialize(byte[] data) throws IOException {
-        JSONObject json = new JSONObject(new String(data, UTF_8));
-
-        String id = json.getString("id");
-        int nrOperators = json.getInt("nrOperators");
-        long endTime = json.getLong("duration");
-        int nrParticipants = json.getInt("nrParticipants");
-        boolean incFlag = json.getBoolean("incFlag");
-        DataQueryIPFSFile file = IPFSConnection.getInstance().getDataQueryIPFSFile(Multihash.fromHex(json.getString("hash")));
-
-        DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, endTime), file, nrParticipants);
-
-        if (incFlag) dataQuery.setIncFlag();
-        dataQuery.state = json.getEnum(DataQueryState.class, "state");
-
-        return dataQuery;
-    }
-
-    /**
-     * Serializes the DataQuery object into JSON.
-     *
-     * @param dataQuery the aggregation process.
-     * @return the JSON value of the data query object.
-     */
-    public static String serialize(DataQuery dataQuery) throws IOException {
-        JSONObject json = new JSONObject()
-                .put("id", dataQuery.id)
-                .put("nrOperators", dataQuery.getSettings().getNrOperators())
-                .put("duration", dataQuery.getSettings().getDuration())
-                .put("nrParticipants", dataQuery.nrParticipants)
-                .put("state", dataQuery.state)
-                .put("incFlag", dataQuery.incFlag)
-                .put("hash", dataQuery.ipfsFile.getHash().toHex());
-        return json.toString();
-    }
-
-    @Override
-    public String toString() {
-        return "queryID: " + this.id +
-                ",\nsettings:\n " + this.settings +
-                ",\nprocess data: " + this.ipfsFile +
-                ",\n state: " + this.state;
-    }
-
-    public enum DataQueryState {
-        WAITING, DONE, CLOSED;
-
-        @Override
-        public String toString() {
-            if (this == DataQueryState.WAITING) return "Waiting";
-            if (this == DataQueryState.DONE) return "Done";
-            else return "Closed";
-        }
-    }
 }

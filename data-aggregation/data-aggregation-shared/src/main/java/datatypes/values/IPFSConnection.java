@@ -1,5 +1,7 @@
 package datatypes.values;
 
+import applications.asker.DataQueryIPFSFile;
+import applications.operator.AggregationIPFSFile;
 import io.ipfs.api.IPFS;
 import io.ipfs.api.MerkleNode;
 import io.ipfs.api.NamedStreamable;

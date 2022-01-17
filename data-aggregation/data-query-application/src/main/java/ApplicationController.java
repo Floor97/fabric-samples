@@ -83,9 +83,9 @@ public class ApplicationController {
                 EncryptedData data = dataQuery.getIpfsFile().getData();
                 EncryptedNonces nonces = dataQuery.getIpfsFile().getNonces();
                 DataQueryKeyStore keystore = ApplicationModel.getInstance().getKey(dataQuery.getId());
-                BigInteger dataAndNonces = PaillierEncryption.decrypt(data, keystore.getPaillierKeys());
+                BigInteger dataAndNonces = keystore.getPaillierEncryption().decrypt(data);
                 for (EncryptedNonce nonce : nonces.getNonces()) {
-                    byte[] decryptedNonce = NTRUEncryption.decrypt(nonce.getNonce(), keystore.getPostQuantumKeys());
+                    byte[] decryptedNonce = keystore.getNtruEncryption().decrypt(nonce.getNonce());
                     dataAndNonces = dataAndNonces.subtract(new BigInteger(new String(decryptedNonce)));
                 }
                 System.out.println("Result of " + dataQuery.getId() + " is " + dataAndNonces.toString());

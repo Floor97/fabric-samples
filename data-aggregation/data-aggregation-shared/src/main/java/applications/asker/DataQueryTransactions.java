@@ -1,10 +1,9 @@
 package applications.asker;
 
-import com.n1analytics.paillier.PaillierPublicKey;
 import datatypes.dataquery.DataQuery;
 import datatypes.values.Pair;
-import encryption.KeyStore;
-import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
+import encryption.NTRUEncryption;
+import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyGenerationParameters;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 
@@ -32,12 +31,11 @@ public class DataQueryTransactions {
      */
     public static Pair<String, DataQueryKeyStore> start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         String id = IdFactory.getInstance().createId();
-        DataQueryKeyStore newKeys = new DataQueryKeyStore();
-        Pair<PaillierPublicKey, NTRUEncryptionPublicKeyParameters> pubkeys = newKeys.getPublicKeys();
+        DataQueryKeyStore newKeys = new DataQueryKeyStore(NTRUEncryptionKeyGenerationParameters.APR2011_743_FAST, 4096);
 
         Map<String, byte[]> trans = new HashMap<>();
-        trans.put("paillier", KeyStore.paPubKeyToString(pubkeys.getP1()).getBytes(StandardCharsets.UTF_8));
-        trans.put("post-quantum", KeyStore.pqPubKeyToBytes(pubkeys.getP2()));
+        trans.put("paillier", newKeys.getPaillierEncryption().serialize().getBytes(StandardCharsets.UTF_8));
+        trans.put("post-quantum", NTRUEncryption.serialize(newKeys.getNtruEncryption().getPublic()).getBytes(StandardCharsets.UTF_8));
 
         contract.createTransaction("Start").setTransient(trans).submit(
                 id,
@@ -67,8 +65,8 @@ public class DataQueryTransactions {
      * The Retrieve transaction in the data query contract is evaluated.
      *
      * @param contract the data query contract.
-     * @throws ContractException    when an exception occurs in the data query contract. This occurs
-     *                              when the data query referenced by the id does not exist.
+     * @throws ContractException when an exception occurs in the data query contract. This occurs
+     *                           when the data query referenced by the id does not exist.
      */
     public static void retrieve(Contract contract) throws ContractException, IOException {
         printResponse(

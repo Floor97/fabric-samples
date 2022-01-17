@@ -1,7 +1,10 @@
-package datatypes.values;
+package applications.asker;
 
 
-import io.ipfs.multihash.Multihash;
+import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonce;
+import datatypes.values.EncryptedNonces;
+import datatypes.values.IPFSFile;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 
 import java.util.Arrays;
@@ -27,6 +30,11 @@ public class DataQueryIPFSFile extends IPFSFile {
         this.nonces.addNonce(nonce);
     }
 
+    /**
+     * The DataQueryIPFSFile gets serialized into a String.
+     *
+     * @return the serialized DataQueryIPFSFile.
+     */
     public String serialize() {
         String superStr = super.serialize();
         StringBuilder builder = new StringBuilder(superStr);
@@ -42,6 +50,12 @@ public class DataQueryIPFSFile extends IPFSFile {
         return builder.toString();
     }
 
+    /**
+     * The String gets deserialized into a DataQueryIPFSFile object.
+     *
+     * @param file the String.
+     * @return the DataQueryIPFSFile object.
+     */
     public static DataQueryIPFSFile deserialize(String file) {
         String[] parts = file.split(";", 2);
         IPFSFile superfile = IPFSFile.deserialize(parts[0]);

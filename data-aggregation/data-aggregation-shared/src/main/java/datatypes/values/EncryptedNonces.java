@@ -1,8 +1,8 @@
 package datatypes.values;
 
+import applications.operator.OperatorKeyStore;
 import datatypes.aggregationprocess.AggregationProcess;
 import encryption.NTRUEncryption;
-import org.bouncycastler.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.json.JSONObject;
 
@@ -31,16 +31,16 @@ public class EncryptedNonces {
      * Makes the list of nonces encrypted with kp and adds them together, and re-encrypts the sum
      * with the postQuantumPk.
      *
-     * @param kp            the private key that decrypts the nonces.
+     * @param keystore      keystore that contains the NTRU keys.
      * @param encNonces     the encrypted list of nonces.
      * @param postQuantumPk the public key to re-encrypt the nonces.
      * @return One nonce that is encrypted using the postQuantumPk.
      * @throws InvalidCipherTextException thrown by the NTRUEncrypt method.
      */
-    public static EncryptedNonce condenseNonces(AsymmetricCipherKeyPair kp, EncryptedNonces encNonces, String postQuantumPk) throws InvalidCipherTextException {
+    public static EncryptedNonce condenseNonces(OperatorKeyStore keystore, EncryptedNonces encNonces, String postQuantumPk) throws InvalidCipherTextException {
         BigInteger summedNonce = new BigInteger("0");
         for (EncryptedNonce encNonce : encNonces.getNonces())
-            summedNonce = summedNonce.add(new BigInteger(NTRUEncryption.decrypt(encNonce.getNonce(), kp)));
+            summedNonce = summedNonce.add(new BigInteger(keystore.getNtruEncryption().decrypt(encNonce.getNonce())));
 
         return new EncryptedNonce(NTRUEncryption.encrypt(summedNonce.toByteArray(), postQuantumPk));
     }
@@ -83,7 +83,7 @@ public class EncryptedNonces {
     public static String serialize(EncryptedNonces encryptedNonces) {
         String[] strEncryptedNonces = new String[encryptedNonces.nonces.length];
         for (int i = 0; i < encryptedNonces.nonces.length; i++) {
-            strEncryptedNonces[i] = EncryptedNonce.serialize(encryptedNonces.nonces[i]);
+            strEncryptedNonces[i] = encryptedNonces.nonces[i].serialize();
         }
         JSONObject json = new JSONObject();
         json.put("nonces", strEncryptedNonces); //todo check redundant

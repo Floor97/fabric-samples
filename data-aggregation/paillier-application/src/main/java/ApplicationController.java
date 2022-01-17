@@ -1,4 +1,3 @@
-import applications.asker.IdFactory;
 import applications.operator.AggregationTransactions;
 import applications.operator.DataGenerator;
 import applications.operator.OperatorKeyStore;
@@ -8,7 +7,7 @@ import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonces;
 import datatypes.values.Pair;
-import encryption.KeyStore;
+import encryption.NTRUEncryption;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractEvent;
@@ -85,9 +84,9 @@ public class ApplicationController {
                         AggregationProcess aggregationProcess = AggregationProcess.deserialize(contractEvent.getPayload().get());
                         QueryTransactions.add(contractQuery, data.getId(), aggregationProcess.getIpfsFile(),
                                 EncryptedNonces.condenseNonces(
-                                        opKeystore.getPostQuantumKeys(),
+                                        opKeystore,
                                         EncryptedNonces.getOperatorNonces(aggregationProcess, opKeystore.getIndex()),
-                                        KeyStore.pqPubKeyToString(data.getIpfsFile().getPostqKey())
+                                        NTRUEncryption.serialize(data.getIpfsFile().getPostqKey())
                                 ),
                                 opKeystore.getIndex()
                         );
@@ -122,7 +121,7 @@ public class ApplicationController {
                     System.out.println("StartAggregation");
                     Pair<EncryptedData, EncryptedNonces> dataAndNonces = DataGenerator.generateDataAndNonces(
                             aggregationProcess.getIpfsFile().getPaillierKey(),
-                            Arrays.stream(aggregationProcess.getIpfsFile().getOperatorKeys()).map(KeyStore::pqPubKeyToString).toArray(String[]::new)
+                            Arrays.stream(aggregationProcess.getIpfsFile().getOperatorKeys()).map(NTRUEncryption::serialize).toArray(String[]::new)
                     );
                     AggregationTransactions.add(contractAgg, aggregationProcess.getId(), dataAndNonces.getP1(), dataAndNonces.getP2());
                 }
@@ -142,6 +141,7 @@ public class ApplicationController {
      * @param contractQuery the data query contract.
      * @param contractAgg   the aggregation process contract.
      * @param data          the data
+     * @param keystore      the operator keystore.
      */
     private static void eventTimeLimit(Contract contractQuery, Contract contractAgg, DataQuery data, OperatorKeyStore keystore) {
         TimerTask action = new TimerTask() {
@@ -151,9 +151,9 @@ public class ApplicationController {
 
                     QueryTransactions.add(contractQuery, aggregationProcess.getId(), aggregationProcess.getIpfsFile(),
                             EncryptedNonces.condenseNonces(
-                                    keystore.getPostQuantumKeys(),
+                                    keystore,
                                     EncryptedNonces.getOperatorNonces(aggregationProcess, keystore.getIndex()),
-                                    KeyStore.pqPubKeyToString(aggregationProcess.getIpfsFile().getPostqKey())
+                                    NTRUEncryption.serialize(aggregationProcess.getIpfsFile().getPostqKey())
                             ), keystore.getIndex()
                     );
 

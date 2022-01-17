@@ -1,5 +1,6 @@
 package applications.operator;
 
+import com.n1analytics.paillier.PaillierPrivateKey;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonce;
 import datatypes.values.EncryptedNonces;
@@ -33,6 +34,6 @@ public class DataGenerator {
 
             nonces.addNonce(new EncryptedNonce(NTRUEncryption.encrypt(nonce.getBytes(), postQuantumPk)));
         }
-        return new Pair<>(PaillierEncryption.encrypt(data, modulus), nonces);
+        return new Pair<EncryptedData, EncryptedNonces>(PaillierEncryption.encrypt(data, modulus), nonces);
     }
 }

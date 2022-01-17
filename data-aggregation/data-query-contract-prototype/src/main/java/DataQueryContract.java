@@ -1,7 +1,10 @@
+import applications.asker.DataQueryIPFSFile;
 import datatypes.dataquery.DataQuery;
 import datatypes.dataquery.DataQuerySettings;
-import datatypes.values.*;
-import encryption.KeyStore;
+import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonce;
+import datatypes.values.EncryptedNonces;
+import encryption.NTRUEncryption;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
@@ -39,12 +42,12 @@ public class DataQueryContract implements ContractInterface {
 
         DataQueryIPFSFile ipfsFile = new DataQueryIPFSFile(
                 new String(trans.get("paillier")),
-                KeyStore.pqToPubKey(trans.get("post-quantum")),
+                NTRUEncryption.deserialize(trans.get("post-quantum")),
                 new EncryptedData("null", "null"),
                 new EncryptedNonces(new EncryptedNonce[nrOperators]));
         ipfsFile.createHash();
         DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, duration), ipfsFile, -1);
-        String serDataQuery = DataQuery.serialize(dataQuery);
+        String serDataQuery = dataQuery.serialize();
         stub.setEvent("StartQuery", serDataQuery.getBytes(StandardCharsets.UTF_8));
         stub.putStringState(id, serDataQuery);
     }
@@ -86,9 +89,9 @@ public class DataQueryContract implements ContractInterface {
         String serDataQuery;
         if (ipfsFile.getNonces().isFull()) {
             dataQuery.setDone();
-            serDataQuery = DataQuery.serialize(dataQuery);
+            serDataQuery = dataQuery.serialize();
             stub.setEvent("DoneQuery", serDataQuery.getBytes(StandardCharsets.UTF_8));
-        } else serDataQuery = DataQuery.serialize(dataQuery);
+        } else serDataQuery = dataQuery.serialize();
 
         stub.putStringState(id, serDataQuery);
         return serDataQuery;
@@ -111,7 +114,7 @@ public class DataQueryContract implements ContractInterface {
             throw new ChaincodeException(String.format("Data query, %s, is already closed", id));
 
         dataQuery.setClosed();
-        stub.putStringState(id, DataQuery.serialize(dataQuery));
+        stub.putStringState(id, dataQuery.serialize());
     }
 
     /**
@@ -172,5 +175,4 @@ public class DataQueryContract implements ContractInterface {
 
         return stub;
     }
-
 }

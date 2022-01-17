@@ -48,18 +48,6 @@ public class ApplicationModel {
         return queryKeys.get(id);
     }
 
-    public void addKey(String id, OperatorKeyStore keys) {
-        queryKeys.put(id, keys);
-    }
-
-    public HashSet<String> getIds() {
-        return ids;
-    }
-
-    public boolean containsId(String id) {
-        return ids.contains(id);
-    }
-
     public int getOperatorThreshold() {
         return operatorThreshold;
     }
