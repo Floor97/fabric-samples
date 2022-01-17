@@ -3,10 +3,12 @@ package applications.operator;
 import datatypes.values.EncryptedNonce;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
+import org.hyperledger.fabric.gateway.Transaction;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
@@ -19,27 +21,24 @@ public class QueryTransactions {
      * and index is used as regular input.
      *
      * @param contract        the data query contract.
+     * @param name            the name of the Transaction, either AddOperatorZero or AddOperatorN
      * @param id              the id of the data aggregation asset.
      * @param file            the IPFS file used in the aggregation process.
      * @param condensedNonces nonces encrypted with NTRUEncrypt.
      * @param index           the index the operator has in the KeyStore.
-     * @throws ContractException    when an exception occurs in the data query contract.
-     *                              An exception occurs when the data query asset is not in the waiting phase,
-     *                              or does not exist.
      * @throws InterruptedException thrown by the submit method.
-     * @throws TimeoutException     thrown by the submit method.
      */
-    public static void add(Contract contract, String id, AggregationIPFSFile file, EncryptedNonce condensedNonces, int index)
-            throws ContractException, InterruptedException, TimeoutException {
+    public static void addOperator(Contract contract, String name, String id, AggregationIPFSFile file, EncryptedNonce condensedNonces, int index)
+            throws InterruptedException {
 
         Map<String, byte[]> trans = new HashMap<>();
         trans.put("data", file.getData().serialize().getBytes(StandardCharsets.UTF_8));
         trans.put("nonces", condensedNonces.serialize().getBytes(StandardCharsets.UTF_8));
-        contract.createTransaction("Add").setTransient(trans).submit(
+        repeat(contract.createTransaction(name).setTransient(trans), new String[]{
                 id,
                 String.valueOf(file.getNonces().size()),
                 String.valueOf(index)
-        );
+        });
     }
 
     /**
@@ -60,5 +59,17 @@ public class QueryTransactions {
     private static String scanNextLine(String message) {
         System.out.print(message);
         return scan.next();
+    }
+
+    public static byte[] repeat(Transaction transaction, String[] args) throws InterruptedException {
+        for (int i = 0; i < 10; i++) {
+            try {
+                return transaction.submit(args);
+            } catch (ContractException | TimeoutException | InterruptedException e) {
+                System.out.println("Failed to commit transaction, trying again..." + i);
+                Thread.sleep(new Random().nextInt(10) * 200 + i * 1000);
+            }
+        }
+        throw new RuntimeException("Failed to commit transaction");
     }
 }

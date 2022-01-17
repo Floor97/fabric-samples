@@ -48,7 +48,7 @@ public class AggregationProcessContract implements ContractInterface {
         AggregationProcess aggregationProcess = null;
         if (Exists(ctx, id)) {
             aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
-            if (!aggregationProcess.isSelecting()) throw new ChaincodeException("Process is not in selection phase");
+            if (!aggregationProcess.isSelecting()) return -1;
         } else {
             DataQueryIPFSFile dataIpfsFile = IPFSConnection.getInstance().getDataQueryIPFSFile(Multihash.fromHex(ipfsHash));
             AggregationIPFSFile aggIpfsFile = new AggregationIPFSFile(
@@ -58,9 +58,10 @@ public class AggregationProcessContract implements ContractInterface {
                     new NTRUEncryptionPublicKeyParameters[nrOperators],
                     new ArrayList<>()
             );
+            aggIpfsFile.createHash();
             aggregationProcess = new AggregationProcess(id, aggIpfsFile);
         }
-
+        if(aggregationProcess.getIpfsFile().isFull()) return -1;
         int index = aggregationProcess.getIpfsFile().addOperatorKey(NTRUEncryption.deserialize(map.get("operator")));
 
         String serAggregationProcess;
@@ -85,7 +86,7 @@ public class AggregationProcessContract implements ContractInterface {
      * @param id  the unique id of the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void Add(Context ctx, String id) {
+    public void Add(Context ctx, String id) throws IOException {
         ChaincodeStub stub = retrieveStub(ctx, id);
         AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
 
@@ -122,7 +123,7 @@ public class AggregationProcessContract implements ContractInterface {
      * @param id  the unique id of the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String Close(Context ctx, String id) {
+    public String Close(Context ctx, String id) throws IOException {
         ChaincodeStub stub = retrieveStub(ctx, id);
 
         AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));

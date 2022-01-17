@@ -76,6 +76,7 @@ public class ApplicationController {
      */
     private static void setContractListener(Contract contract) {
         Consumer<ContractEvent> consumer = contractEvent -> {
+            if(!contractEvent.getTransactionEvent().isValid()) return;
             System.out.println("Event occured: " + contractEvent.getName());
             if (!"DoneQuery".equals(contractEvent.getName())) return;
             try {
