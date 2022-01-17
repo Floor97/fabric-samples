@@ -36,12 +36,12 @@ public class Application {
 
             insertIdentity(wallet);
 
-            String username = "User1@org2.example.com";
-            Path connectionProfile = Paths.get("..", "gateway", "connection-org2.yaml");
+            String username = "User1@org1.example.com";
+            Path connectionProfile = Paths.get("..", "gateway", "connection-org1.yaml");
             builder.identity(wallet, username).networkConfig(connectionProfile).discovery(true);
 
             try (Gateway gateway = builder.connect()) {
-                Network networkAgg = gateway.getNetwork("participant");
+                Network networkAgg = gateway.getNetwork("participants");
                 Network networkQuery = gateway.getNetwork("asker");
                 Contract contractAgg = networkAgg.getContract("aggregationprocess", "aggregationprocess.pailliercontract");
                 Contract contractQuery = networkQuery.getContract("query", "query.eventcontract");
@@ -60,7 +60,7 @@ public class Application {
      * @param wallet the wallet the application uses.
      */
     private static void insertIdentity(Wallet wallet) {
-        Path credentialPath = Paths.get("..", "..", "test-network", "organizations", "peerOrganizations", "org2.example.com", "users", "User1@org2.example.com", "msp");
+        Path credentialPath = Paths.get("..", "..", "test-network", "organizations", "peerOrganizations", "org1.example.com", "users", "User1@org1.example.com", "msp");
         Path certificatePath = credentialPath.resolve(Paths.get("signcerts", "cert.pem"));
         Path privateKeyPath = Objects.requireNonNull(credentialPath.resolve(Paths.get("keystore")).toFile().listFiles())[0].toPath();
         X509Certificate certificate;
@@ -76,9 +76,9 @@ public class Application {
             e.printStackTrace();
             return;
         }
-        Identity identity = Identities.newX509Identity("Org2MSP", certificate, privateKey);
+        Identity identity = Identities.newX509Identity("Org1MSP", certificate, privateKey);
 
-        String identityLabel = "User1@org2.example.com";
+        String identityLabel = "User1@org1.example.com";
         try {
             wallet.put(identityLabel, identity);
         } catch (IOException e) {

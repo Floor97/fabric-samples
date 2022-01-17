@@ -1,11 +1,10 @@
+import applications.asker.DataQueryIPFSFile;
 import datatypes.dataquery.DataQuery;
 import datatypes.dataquery.DataQuerySettings;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonce;
 import datatypes.values.EncryptedNonces;
-import datatypes.values.IPFSFile;
-import encryption.KeyStore;
-import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
+import encryption.NTRUEncryption;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
@@ -14,6 +13,8 @@ import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @Default
@@ -32,25 +33,23 @@ public class DataQueryContract implements ContractInterface {
      * @param duration    the end time for the process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void Start(Context ctx, String id, int nrOperators, long duration) {
+    public void Start(Context ctx, String id, int nrOperators, long duration) throws IOException {
         ChaincodeStub stub = ctx.getStub();
         Map<String, byte[]> trans = stub.getTransient();
 
         if (Exists(ctx, id))
             throw new ChaincodeException(String.format("Data query, %s, already exists", id));
 
-        IPFSFile ipfsFile = new IPFSFile.IPFSFileBuilder(
+        DataQueryIPFSFile ipfsFile = new DataQueryIPFSFile(
                 new String(trans.get("paillier")),
-                KeyStore.pqToPubKey(trans.get("post-quantum")))
-                .setOperatorKeys(new NTRUEncryptionPublicKeyParameters[nrOperators])
-                .setData(new EncryptedData("null", "null"))
-                .setNonces(new datatypes.values.EncryptedNonces[0])
-                .build();
-        DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, duration), ipfsFile);
-
-        byte[] serDataQuery = DataQuery.serialize(dataQuery);
-        stub.setEvent("StartQuery", serDataQuery);
-        stub.putState(id, serDataQuery);
+                NTRUEncryption.deserialize(trans.get("post-quantum")),
+                new EncryptedData("null", "null"),
+                new EncryptedNonces(new EncryptedNonce[nrOperators]));
+        ipfsFile.createHash();
+        DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, duration), ipfsFile, -1);
+        String serDataQuery = dataQuery.serialize();
+        stub.setEvent("StartQuery", serDataQuery.getBytes(StandardCharsets.UTF_8));
+        stub.putStringState(id, serDataQuery);
     }
 
     /**
@@ -67,7 +66,7 @@ public class DataQueryContract implements ContractInterface {
      * @return the DataQuery object as a String.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public byte[] Add(Context ctx, String id, int nrParticipants, int index) {
+    public String Add(Context ctx, String id, int nrParticipants) throws IOException {
         ChaincodeStub stub = retrieveStub(ctx, id);
         Map<String, byte[]> trans = stub.getTransient();
         DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
@@ -75,25 +74,26 @@ public class DataQueryContract implements ContractInterface {
         if (!dataQuery.isWaiting())
             throw new ChaincodeException(String.format("Data query, %s, is not waiting", id));
 
-        IPFSFile ipfsFile = dataQuery.getIpfsFile();
+        DataQueryIPFSFile ipfsFile = dataQuery.getIpfsFile();
         EncryptedData encData = EncryptedData.deserialize(new String(trans.get("data")));
 
         if (ipfsFile.getData().getData().equals("null")) {
             dataQuery.getIpfsFile().setData(encData);
+            dataQuery.setNrParticipants(nrParticipants);
         } else if (!ipfsFile.getData().getData().equals(encData.getData())
                 || !ipfsFile.getData().getExponent().equals(encData.getExponent())
-                || dataQuery.getIpfsFile().getNonces().length != nrParticipants)
+                || dataQuery.getNrParticipants() != nrParticipants)
             dataQuery.setIncFlag();
-        ipfsFile.getNonces()[index] = new EncryptedNonces(EncryptedNonce.deserialize(new String(trans.get("nonces"))));
+        ipfsFile.getNonces().addNonce(EncryptedNonce.deserialize(new String(trans.get("nonces"))));
 
-        byte[] serDataQuery;
-        if (ipfsFile.getNonces().length == nrParticipants) {
+        String serDataQuery;
+        if (ipfsFile.getNonces().isFull()) {
             dataQuery.setDone();
-            serDataQuery = DataQuery.serialize(dataQuery);
-            stub.setEvent("DoneQuery", serDataQuery);
-        } else serDataQuery = DataQuery.serialize(dataQuery);
+            serDataQuery = dataQuery.serialize();
+            stub.setEvent("DoneQuery", serDataQuery.getBytes(StandardCharsets.UTF_8));
+        } else serDataQuery = dataQuery.serialize();
 
-        stub.putState(id, serDataQuery);
+        stub.putStringState(id, serDataQuery);
         return serDataQuery;
     }
 
@@ -106,7 +106,7 @@ public class DataQueryContract implements ContractInterface {
      * @param id  the unique id of the data query.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void Close(Context ctx, String id) {
+    public void Close(Context ctx, String id) throws IOException {
         ChaincodeStub stub = retrieveStub(ctx, id);
 
         DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
@@ -114,8 +114,7 @@ public class DataQueryContract implements ContractInterface {
             throw new ChaincodeException(String.format("Data query, %s, is already closed", id));
 
         dataQuery.setClosed();
-        byte[] serDataQuery = DataQuery.serialize(dataQuery);
-        stub.putState(id, serDataQuery);
+        stub.putStringState(id, dataQuery.serialize());
     }
 
     /**
@@ -127,9 +126,9 @@ public class DataQueryContract implements ContractInterface {
      * @return the data query.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public byte[] Retrieve(Context ctx, String id) {
+    public String Retrieve(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
-        return stub.getState(id);
+        return stub.getStringState(id);
     }
 
     /**
@@ -141,11 +140,11 @@ public class DataQueryContract implements ContractInterface {
      * @param id  the unique id of the data query.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public byte[] Remove(Context ctx, String id) {
+    public String Remove(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
-        byte[] serDataQuery = stub.getState(id);
+        String serDataQuery = stub.getStringState(id);
         stub.delState(id);
-        stub.setEvent("RemoveQuery", serDataQuery);
+        stub.setEvent("RemoveQuery", serDataQuery.getBytes(StandardCharsets.UTF_8));
         return serDataQuery;
     }
 
@@ -176,5 +175,4 @@ public class DataQueryContract implements ContractInterface {
 
         return stub;
     }
-
 }

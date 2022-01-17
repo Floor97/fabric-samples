@@ -1,4 +1,5 @@
-import encryption.KeyStore;
+import applications.asker.DataQueryIPFSFile;
+import applications.operator.AggregationIPFSFile;
 import com.n1analytics.paillier.EncryptedNumber;
 import com.n1analytics.paillier.PaillierContext;
 import com.n1analytics.paillier.PaillierPublicKey;
@@ -6,22 +7,26 @@ import datatypes.aggregationprocess.AggregationProcess;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonces;
 import datatypes.values.IPFSConnection;
+import encryption.NTRUEncryption;
+import io.ipfs.multihash.Multihash;
+import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
 import org.hyperledger.fabric.contract.annotation.Default;
-import org.hyperledger.fabric.contract.annotation.Info;
 import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
 
-import java.lang.annotation.Annotation;
+import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Map;
 
 @Default
 @Contract(name = "aggregationprocess.pailliercontract")
-public class AggregationProcessContract implements ContractInterface, Contract {
+public class AggregationProcessContract implements ContractInterface {
 
     /**
      * If not present, instantiates a new aggregation process on the ledger with the given id.
@@ -31,12 +36,13 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      * or the StartAggregating event occurs when enough operators participated. Throws an exception
      * if the aggregation already exists but is not in the selection phase.
      *
-     * @param ctx      the transaction context.
-     * @param id       the unique id of the aggregation process.
-     * @param ipfsHash the unique hash from the data query ipfs file.
+     * @param ctx         the transaction context.
+     * @param id          the unique id of the aggregation process.
+     * @param nrOperators the number of operators required for the aggregation process.
+     * @param ipfsHash    the unique hash from the data query ipfs file.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public int Start(Context ctx, String id, String ipfsHash) {
+    public int Start(Context ctx, String id, int nrOperators, String ipfsHash) throws IOException {
         ChaincodeStub stub = ctx.getStub();
         Map<String, byte[]> map = stub.getTransient();
         AggregationProcess aggregationProcess = null;
@@ -44,20 +50,28 @@ public class AggregationProcessContract implements ContractInterface, Contract {
             aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
             if (!aggregationProcess.isSelecting()) throw new ChaincodeException("Process is not in selection phase");
         } else {
-            aggregationProcess = new AggregationProcess(id, IPFSConnection.getInstance().getFile(ipfsHash));
+            DataQueryIPFSFile dataIpfsFile = IPFSConnection.getInstance().getDataQueryIPFSFile(Multihash.fromHex(ipfsHash));
+            AggregationIPFSFile aggIpfsFile = new AggregationIPFSFile(
+                    dataIpfsFile.getPaillierKey(),
+                    dataIpfsFile.getPostqKey(),
+                    new EncryptedData(null, null),
+                    new NTRUEncryptionPublicKeyParameters[nrOperators],
+                    new ArrayList<>()
+            );
+            aggregationProcess = new AggregationProcess(id, aggIpfsFile);
         }
 
-        int index = aggregationProcess.getIpfsFile().addOperatorKey(KeyStore.pqToPubKey(map.get("operator")));
+        int index = aggregationProcess.getIpfsFile().addOperatorKey(NTRUEncryption.deserialize(map.get("operator")));
 
-        byte[] serAggregationProcess = null;
+        String serAggregationProcess;
         if (aggregationProcess.getIpfsFile().isFull()) {
             aggregationProcess.setAggregating();
-            serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
-            stub.setEvent("StartAggregating", serAggregationProcess);
+            serAggregationProcess = aggregationProcess.serialize();
+            stub.setEvent("StartAggregating", serAggregationProcess.getBytes(StandardCharsets.UTF_8));
         }
-        serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
+        serAggregationProcess = aggregationProcess.serialize();
 
-        stub.putState(id, serAggregationProcess);
+        stub.putStringState(id, serAggregationProcess);
         return index;
     }
 
@@ -82,7 +96,7 @@ public class AggregationProcessContract implements ContractInterface, Contract {
         EncryptedData currentData = aggregationProcess.getIpfsFile().getData();
         EncryptedNonces nonces = EncryptedNonces.deserialize(map.get("nonces"));
 
-        if (currentData.getData() != null) {
+        if (!currentData.getData().equals("null")) {
             PaillierPublicKey pk = new PaillierPublicKey(new BigInteger(aggregationProcess.getIpfsFile().getPaillierKey()));
             PaillierContext pctx = pk.createSignedContext();
             EncryptedNumber encCurrentData = new EncryptedNumber(pctx, new BigInteger(currentData.getData()),
@@ -96,8 +110,7 @@ public class AggregationProcessContract implements ContractInterface, Contract {
 
         aggregationProcess.getIpfsFile().addNonces(nonces);
 
-        byte[] serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
-        stub.putState(id, serAggregationProcess);
+        stub.putStringState(id, aggregationProcess.serialize());
     }
 
     /**
@@ -109,7 +122,7 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      * @param id  the unique id of the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public byte[] Close(Context ctx, String id) {
+    public String Close(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
 
         AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
@@ -117,8 +130,8 @@ public class AggregationProcessContract implements ContractInterface, Contract {
             throw new ChaincodeException(String.format("Aggregation process %s is already closed", id));
 
         aggregationProcess.setClosed();
-        byte[] serAggregationProcess = AggregationProcess.serialize(aggregationProcess);
-        stub.putState(id, serAggregationProcess);
+        String serAggregationProcess = aggregationProcess.serialize();
+        stub.putStringState(id, serAggregationProcess);
         return serAggregationProcess;
     }
 
@@ -131,9 +144,9 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      * @return the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public byte[] Retrieve(Context ctx, String id) {
+    public String Retrieve(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
-        return stub.getState(id);
+        return stub.getStringState(id);
     }
 
     /**
@@ -146,9 +159,9 @@ public class AggregationProcessContract implements ContractInterface, Contract {
      * @return the aggregation process.
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public byte[] Remove(Context ctx, String id) {
+    public String Remove(Context ctx, String id) {
         ChaincodeStub stub = retrieveStub(ctx, id);
-        byte[] aggregationProcess = stub.getState(id);
+        String aggregationProcess = stub.getStringState(id);
         stub.delState(id);
         return aggregationProcess;
     }
@@ -180,41 +193,5 @@ public class AggregationProcessContract implements ContractInterface, Contract {
             throw new ChaincodeException(String.format("Asset %s does not exist", id));
 
         return stub;
-    }
-
-    //todo implement Contract methods.
-    @Override
-    public Info info() {
-        return null;
-    }
-
-    @Override
-    public String name() {
-        return null;
-    }
-
-    @Override
-    public String transactionSerializer() {
-        return null;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return false;
-    }
-
-    @Override
-    public int hashCode() {
-        return 0;
-    }
-
-    @Override
-    public String toString() {
-        return null;
-    }
-
-    @Override
-    public Class<? extends Annotation> annotationType() {
-        return null;
     }
 }

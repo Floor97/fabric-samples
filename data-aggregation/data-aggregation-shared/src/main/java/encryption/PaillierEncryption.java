@@ -10,6 +10,12 @@ import java.math.BigInteger;
 
 public class PaillierEncryption {
 
+    private PaillierPrivateKey keys;
+
+    public PaillierEncryption(int keySize) {
+        this.keys = PaillierPrivateKey.create(keySize);
+    }
+
     /**
      * Encrypts the data using the Paillier public key.
      *
@@ -27,15 +33,37 @@ public class PaillierEncryption {
     /**
      * Decrypts the data using the Paillier private key.
      *
-     * @param data       the data that will be decrypted.
-     * @param privateKey the private key.
+     * @param data the data that will be decrypted.
      * @return the decrypted data.
      */
-    public static BigInteger decrypt(EncryptedData data, PaillierPrivateKey privateKey) {
-        PaillierPublicKey pubkey = privateKey.getPublicKey();
+    public BigInteger decrypt(EncryptedData data) {
+        PaillierPublicKey pubkey = this.keys.getPublicKey();
         PaillierContext ctx = pubkey.createUnsignedContext();
 
         EncryptedNumber encryptedNumber = new EncryptedNumber(ctx, new BigInteger(data.getData()), Integer.parseInt(data.getExponent()));
-        return privateKey.decrypt(encryptedNumber).decodeBigInteger();
+        return this.keys.decrypt(encryptedNumber).decodeBigInteger();
+    }
+
+    /**
+     * Serializes the PaillierPublicKey to String.
+     *
+     * @return the serialized PaillierPublicKey.
+     */
+    public String serialize() {
+        return this.keys.getPublicKey().getModulus().toString();
+    }
+
+    /**
+     * Deserializes the PaillierPublicKey to String.
+     *
+     * @param str the deserialized PaillierPublicKey.
+     * @return the PaillierPublicKey.
+     */
+    public static PaillierPublicKey deserialize(String str) {
+        return new PaillierPublicKey(new BigInteger(str));
+    }
+
+    public PaillierPublicKey getPublic() {
+        return this.keys.getPublicKey();
     }
 }

@@ -4,10 +4,12 @@ import datatypes.aggregationprocess.AggregationProcess;
 import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonces;
-import encryption.KeyStore;
+import encryption.NTRUEncryption;
+import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyGenerationParameters;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,11 +34,11 @@ public class AggregationTransactions {
      * @throws InterruptedException thrown by the submit method.
      * @throws TimeoutException     thrown by the submit method.
      */
-    public static OperatorKeyStore start(Contract contractAgg, DataQuery dataQuery) throws ContractException, InterruptedException, TimeoutException {
-        OperatorKeyStore keystore = OperatorKeyStore.createInstance();
+    public static OperatorKeyStore start(Contract contractAgg, DataQuery dataQuery) throws ContractException, InterruptedException, TimeoutException, IOException {
+        OperatorKeyStore keystore = new OperatorKeyStore(NTRUEncryptionKeyGenerationParameters.APR2011_743_FAST);
         Map<String, byte[]> transientData = new HashMap<>();
 
-        transientData.put("operator", KeyStore.pqPubKeyToString(keystore.getPublicKey()).getBytes(StandardCharsets.UTF_8));
+        transientData.put("operator", NTRUEncryption.serialize(keystore.getNtruEncryption().getPublic()).getBytes(StandardCharsets.UTF_8));
         byte[] index = contractAgg.createTransaction("Start").setTransient(transientData).submit(
                 dataQuery.getId(),
                 String.valueOf(dataQuery.getSettings().getNrOperators()),
@@ -65,10 +67,10 @@ public class AggregationTransactions {
      */
     public static void add(Contract contract, String id, EncryptedData data, EncryptedNonces nonces) throws ContractException, InterruptedException, TimeoutException {
         Map<String, byte[]> transientData = new HashMap<>();
-        transientData.put("data", EncryptedData.serialize(data).getBytes(StandardCharsets.UTF_8));
+        transientData.put("data", data.serialize().getBytes(StandardCharsets.UTF_8));
         transientData.put("nonces", EncryptedNonces.serialize(nonces).getBytes(StandardCharsets.UTF_8));
 
-        contract.createTransaction("AddData").setTransient(transientData).submit(id);
+        contract.createTransaction("Add").setTransient(transientData).submit(id);
     }
 
     /**
@@ -84,12 +86,11 @@ public class AggregationTransactions {
      * @throws TimeoutException     thrown by the submit method.
      */
     public static AggregationProcess close(Contract contractAgg, String id) throws ContractException, InterruptedException, TimeoutException {
-        return AggregationProcess.deserialize(
-                contractAgg.submitTransaction(
-                        "Close",
-                        id
-                )
+        byte[] response = contractAgg.submitTransaction(
+                "Close",
+                id
         );
+        return AggregationProcess.deserialize(response);
     }
 
     /**

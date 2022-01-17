@@ -1,8 +1,6 @@
 package datatypes.aggregationprocess;
 
-import datatypes.values.IPFSConnection;
-import datatypes.values.IPFSFile;
-import io.ipfs.multihash.Multihash;
+import applications.operator.AggregationIPFSFile;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 import org.json.JSONObject;
@@ -16,26 +14,70 @@ public class AggregationProcess {
     private final String id;
 
     @Property()
-    private final IPFSFile ipfsFile;
+    private final AggregationIPFSFile ipfsFile;
 
     @Property()
     private AggregationProcessState state = AggregationProcessState.SELECTING;
 
-    public AggregationProcess(String id, IPFSFile ipfsFile) {
+    public AggregationProcess(String id, AggregationIPFSFile ipfsFile) {
         this.id = id;
         this.ipfsFile = ipfsFile;
     }
 
-    public AggregationProcess(String id, Multihash hash) {
-        this.id = id;
-        this.ipfsFile = IPFSConnection.getInstance().getFile(hash);
+    public enum AggregationProcessState {
+        SELECTING, AGGREGATING, CLOSED;
+
+        @Override
+        public String toString() {
+            if (this == AggregationProcessState.SELECTING) return "Selecting";
+            if (this == AggregationProcessState.AGGREGATING) return "Aggregating";
+            else return "Closed";
+        }
+    }
+
+    /**
+     * Deserializes the JSON into an AggregationProcess object.
+     *
+     * @param data the JSON.
+     * @return the AggregationProcess object.
+     */
+    public static AggregationProcess deserialize(byte[] data) {
+        JSONObject json = new JSONObject(new String(data, UTF_8));
+
+        String id = json.getString("id");
+        AggregationIPFSFile ipfsFile = AggregationIPFSFile.deserialize(json.getString("file"));
+
+        AggregationProcess aggregationProcess = new AggregationProcess(id, ipfsFile);
+        aggregationProcess.state = json.getEnum(AggregationProcessState.class, "state");
+
+        return aggregationProcess;
+    }
+
+    /**
+     * Serializes the AggregationProcess object into JSON.
+     *
+     * @return the JSON value of the aggregation process object.
+     */
+    public String serialize() {
+        JSONObject json = new JSONObject()
+                .put("id", this.id)
+                .put("file", this.ipfsFile.serialize())
+                .put("state", this.state);
+        return json.toString();
+    }
+
+    @Override
+    public String toString() {
+        return "id: " + this.id +
+                "process data: " + this.ipfsFile.toString() +
+                "state: " + this.state;
     }
 
     public String getId() {
         return id;
     }
 
-    public IPFSFile getIpfsFile() {
+    public AggregationIPFSFile getIpfsFile() {
         return ipfsFile;
     }
 
@@ -59,56 +101,5 @@ public class AggregationProcess {
     public AggregationProcess setClosed() {
         this.state = AggregationProcessState.CLOSED;
         return this;
-    }
-
-    /**
-     * Deserializes the JSON into an AggregationProcess object.
-     *
-     * @param data the JSON.
-     * @return the AggregationProcess object.
-     */
-    public static AggregationProcess deserialize(byte[] data) {
-        JSONObject json = new JSONObject(new String(data, UTF_8));
-
-        String id = json.getString("id");
-        IPFSFile ipfsFile = IPFSFile.deserialize(json.getString("file"), -1);
-
-        AggregationProcess aggregationProcess = new AggregationProcess(id, ipfsFile);
-        aggregationProcess.state = json.getEnum(AggregationProcessState.class, "state");
-
-        return aggregationProcess;
-    }
-
-    /**
-     * Serializes the AggregationProcess object into JSON.
-     *
-     * @param aggregationProcess the aggregation process.
-     * @return the JSON value of the aggregation process object.
-     */
-    public static byte[] serialize(AggregationProcess aggregationProcess) {
-        return new JSONObject()
-                .put("id", aggregationProcess.id)
-                .put("file", aggregationProcess.ipfsFile)
-                .put("state", aggregationProcess.state)
-                .toString().getBytes(UTF_8);
-    }
-
-    @Override
-    public String toString() {
-        return "id: " + this.id +
-                "process data: " + this.ipfsFile.toString() +
-                "state: " + this.state;
-    }
-
-
-    public enum AggregationProcessState {
-        SELECTING, AGGREGATING, CLOSED;
-
-        @Override
-        public String toString() {
-            if (this == AggregationProcessState.SELECTING) return "Selecting";
-            if (this == AggregationProcessState.AGGREGATING) return "Aggregating";
-            else return "Closed";
-        }
     }
 }

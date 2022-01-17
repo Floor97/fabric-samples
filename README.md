@@ -32,11 +32,15 @@ The nr_peers signifies how many extra participants you want to launch. By defaul
 	docker ps -a
 which will display the running peers if successful. 
 
-Step 3. Run IPFS. If IPFS is not setup yet, install it using the guide on their [GitHub page](https://github.com/ipfs/ipfs). In data-aggregation/data-aggregation-shared/src/main/java/datatypes/values/IPFSConnection.java fill in your own IPv4 address. 127.0.0.1 could also work, but does not always work with docker. Try http://YOUR_IP:5001/api/v0/version in your browser to see if it works. You should see "403 - command not supported", if it doesn't try running: 
-	netsh interface portproxy add v4tov4 listenport=5001 listenaddress=0.0.0.0 connectport=5001 connectaddress=172.20.207.9
-in the powershell as administrator.
+Step 3. Run IPFS. If IPFS is not setup yet, install it using the guide on their [GitHub page](https://github.com/ipfs/ipfs). In data-aggregation/data-aggregation-shared/src/main/java/datatypes/values/IPFSConnection.java fill in your own local IPv4 address. 127.0.0.1 could also work, but does not always work with docker. Next run the following two configuration lines in wsl:
+	ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
+	ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
+and run the following line as administrator in powershell:
+	netsh interface portproxy add v4tov4 listenport=5001 listenaddress=0.0.0.0 connectport=5001 connectaddress=<IP_inet>
+IP_inet should be the eth0 inet IP as seen from inside WSL.
+Try http://YOUR_IP:5001/api/v0/version in your browser to see if it works. You should see "405 - method not allowed".
 
-Step 4. When the network and ipfs are running, simply start the applications in your favourite IDE. Keep in mind that the applications should also be run on WSL2. When the applications start you are prompted to fill in a username, this is used in the creation of ids for data query processes.
+Step 4. When the network and ipfs are running, simply start the applications in your favourite IDE. Keep in mind that the applications should also be run with WSL as target. When the applications start you are prompted to fill in a username, this is used in the creation of ids for data query processes.
 
 ## 4 Credit
 This project employs the test network from the [Hyperledger Fabric Samples repository](https://github.com/hyperledger/fabric-samples) to test smart contracts.

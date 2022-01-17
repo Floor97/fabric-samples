@@ -17,17 +17,17 @@ public class EncryptedNonce {
      * @return the EncryptedNonce object.
      */
     public static EncryptedNonce deserialize(String serNonce) {
+        if (serNonce.equals("null")) return null;
         return new EncryptedNonce(Base64.getDecoder().decode(serNonce));
     }
 
     /**
      * Serializes the EncryptedNonce object.
      *
-     * @param encryptedNonce the EncryptedNonce object.
      * @return the serialized EncryptedNonce object.
      */
-    public static String serialize(EncryptedNonce encryptedNonce) {
-        return Base64.getEncoder().encodeToString(encryptedNonce.nonce);
+    public String serialize() {
+        return Base64.getEncoder().encodeToString(this.nonce);
     }
 
     public byte[] getNonce() {
@@ -36,6 +36,6 @@ public class EncryptedNonce {
 
     @Override
     public String toString() {
-        return serialize(this);
+        return this.serialize();
     }
 }

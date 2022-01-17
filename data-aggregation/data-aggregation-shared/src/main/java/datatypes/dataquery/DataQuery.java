@@ -1,11 +1,13 @@
 package datatypes.dataquery;
 
+import applications.asker.DataQueryIPFSFile;
 import datatypes.values.IPFSConnection;
-import datatypes.values.IPFSFile;
 import io.ipfs.multihash.Multihash;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 import org.json.JSONObject;
+
+import java.io.IOException;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -19,7 +21,10 @@ public class DataQuery {
     private final DataQuerySettings settings;
 
     @Property()
-    private final IPFSFile ipfsFile;
+    private final DataQueryIPFSFile ipfsFile;
+
+    @Property()
+    private int nrParticipants;
 
     @Property()
     private DataQueryState state = DataQueryState.WAITING;
@@ -27,16 +32,71 @@ public class DataQuery {
     @Property()
     private boolean incFlag = false;
 
-    public DataQuery(String id, DataQuerySettings settings, IPFSFile ipfsFile) {
+    public DataQuery(String id, DataQuerySettings settings, DataQueryIPFSFile ipfsFile, int nrParticipants) {
         this.id = id;
         this.settings = settings;
         this.ipfsFile = ipfsFile;
+        this.nrParticipants = nrParticipants;
     }
 
-    public DataQuery(String id, DataQuerySettings settings, Multihash hash) {
-        this.id = id;
-        this.settings = settings;
-        this.ipfsFile = IPFSConnection.getInstance().getFile(hash);
+    public enum DataQueryState {
+        WAITING, DONE, CLOSED;
+
+        @Override
+        public String toString() {
+            if (this == DataQueryState.WAITING) return "Waiting";
+            if (this == DataQueryState.DONE) return "Done";
+            else return "Closed";
+        }
+    }
+
+    /**
+     * Deserializes the JSON into a DataQuery object.
+     *
+     * @param data the JSON.
+     * @return the DataQuery object.
+     */
+    public static DataQuery deserialize(byte[] data) throws IOException {
+        JSONObject json = new JSONObject(new String(data, UTF_8));
+
+        String id = json.getString("id");
+        int nrOperators = json.getInt("nrOperators");
+        long endTime = json.getLong("duration");
+        int nrParticipants = json.getInt("nrParticipants");
+        boolean incFlag = json.getBoolean("incFlag");
+        DataQueryIPFSFile file = IPFSConnection.getInstance().getDataQueryIPFSFile(Multihash.fromHex(json.getString("hash")));
+
+        DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, endTime), file, nrParticipants);
+
+        if (incFlag) dataQuery.setIncFlag();
+        dataQuery.state = json.getEnum(DataQueryState.class, "state");
+
+        return dataQuery;
+    }
+
+    /**
+     * Serializes the DataQuery object into JSON.
+     *
+     * @return the JSON value of the data query object.
+     */
+    public String serialize() throws IOException {
+        JSONObject json = new JSONObject()
+                .put("id", this.id)
+                .put("nrOperators", this.getSettings().getNrOperators())
+                .put("duration", this.getSettings().getDuration())
+                .put("nrParticipants", this.nrParticipants)
+                .put("state", this.state)
+                .put("incFlag", this.incFlag)
+                .put("hash", this.ipfsFile.getHash().toHex());
+        return json.toString();
+    }
+
+    @Override
+    public String toString() {
+        return "queryID: " + this.id +
+                ",\nsettings:\n " + this.settings +
+                ",\nprocess data: " + this.ipfsFile +
+                ",\n state: " + this.state;
     }
 
     public String getId() {
@@ -47,7 +107,16 @@ public class DataQuery {
         return settings;
     }
 
-    public IPFSFile getIpfsFile() {
+    public int getNrParticipants() {
+        return nrParticipants;
+    }
+
+    public void setNrParticipants(int nrParticipants) {
+        if (this.nrParticipants == -1)
+            this.nrParticipants = nrParticipants;
+    }
+
+    public DataQueryIPFSFile getIpfsFile() {
         return ipfsFile;
     }
 
@@ -86,61 +155,4 @@ public class DataQuery {
         this.incFlag = true;
     }
 
-    /**
-     * Deserializes the JSON into a DataQuery object.
-     *
-     * @param data the JSON.
-     * @return the DataQuery object.
-     */
-    public static DataQuery deserialize(byte[] data) {
-        JSONObject json = new JSONObject(new String(data, UTF_8));
-
-        String id = json.getString("id");
-        int nrOperators = json.getInt("nrOperators");
-        long endTime = json.getLong("duration");
-        boolean incFlag = json.getBoolean("incFlag");
-        IPFSFile file = IPFSFile.deserialize(json.getString("file"), nrOperators);
-
-        DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, endTime), file);
-        if (incFlag) dataQuery.setIncFlag();
-        dataQuery.state = json.getEnum(DataQueryState.class, "state");
-
-        return dataQuery;
-    }
-
-    /**
-     * Serializes the DataQuery object into JSON.
-     *
-     * @param dataQuery the aggregation process.
-     * @return the JSON value of the data query object.
-     */
-    public static byte[] serialize(DataQuery dataQuery) {
-        JSONObject json = new JSONObject()
-                .put("id", dataQuery.id)
-                .put("nrOperators", dataQuery.getSettings().getNrOperators())
-                .put("duration", dataQuery.getSettings().getDuration())
-                .put("state", dataQuery.state)
-                .put("incFlag", dataQuery.incFlag)
-                .put("file", IPFSFile.serialize(dataQuery.ipfsFile));
-        return json.toString().getBytes(UTF_8);
-    }
-
-    @Override
-    public String toString() {
-        return "queryID: " + this.id +
-                ",\nsettings:\n " + this.settings +
-                ",\nprocess data: " + this.ipfsFile +
-                ",\n state: " + this.state;
-    }
-
-    public enum DataQueryState {
-        WAITING, DONE, CLOSED;
-
-        @Override
-        public String toString() {
-            if (this == DataQueryState.WAITING) return "Waiting";
-            if (this == DataQueryState.DONE) return "Done";
-            else return "Closed";
-        }
-    }
 }

@@ -1,19 +1,20 @@
 package datatypes.values;
 
+import applications.operator.OperatorKeyStore;
 import datatypes.aggregationprocess.AggregationProcess;
 import encryption.NTRUEncryption;
-import org.bouncycastler.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.json.JSONObject;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 
 public class EncryptedNonces {
 
     private final EncryptedNonce[] nonces;
     private int pointer;
 
-    public EncryptedNonces(EncryptedNonce... nonces) {
+    public EncryptedNonces(EncryptedNonce[] nonces) {
         this.nonces = nonces;
         setPointer();
     }
@@ -30,31 +31,31 @@ public class EncryptedNonces {
      * Makes the list of nonces encrypted with kp and adds them together, and re-encrypts the sum
      * with the postQuantumPk.
      *
-     * @param kp            the private key that decrypts the nonces.
+     * @param keystore      keystore that contains the NTRU keys.
      * @param encNonces     the encrypted list of nonces.
      * @param postQuantumPk the public key to re-encrypt the nonces.
      * @return One nonce that is encrypted using the postQuantumPk.
      * @throws InvalidCipherTextException thrown by the NTRUEncrypt method.
      */
-    public static EncryptedNonce condenseNonces(AsymmetricCipherKeyPair kp, EncryptedNonces encNonces, String postQuantumPk) throws InvalidCipherTextException {
+    public static EncryptedNonce condenseNonces(OperatorKeyStore keystore, EncryptedNonces encNonces, String postQuantumPk) throws InvalidCipherTextException {
         BigInteger summedNonce = new BigInteger("0");
         for (EncryptedNonce encNonce : encNonces.getNonces())
-            summedNonce = summedNonce.add(new BigInteger(NTRUEncryption.decrypt(encNonce.getNonce(), kp)));
+            summedNonce = summedNonce.add(new BigInteger(keystore.getNtruEncryption().decrypt(encNonce.getNonce())));
 
         return new EncryptedNonce(NTRUEncryption.encrypt(summedNonce.toByteArray(), postQuantumPk));
     }
 
     /**
-     * Takes the nonces in a three-dimensional array and extracts the nonces at place index in each
-     * two-dimensional array in the first array. Returns those as a list.
+     * Takes the nonces and extracts the nonces at place index in each two-dimensional array in the
+     * ArrayList. Returns those as a list.
      *
      * @param aggregationProcess the aggregation process the nonces correspond to.
      * @param index              the index.
      * @return a list of nonces.
      */
     public static EncryptedNonces getOperatorNonces(AggregationProcess aggregationProcess, int index) {
-        EncryptedNonces[] allNonces = aggregationProcess.getIpfsFile().getNonces();
-        EncryptedNonces operatorNonces = new EncryptedNonces(new EncryptedNonce[allNonces.length]);
+        ArrayList<EncryptedNonces> allNonces = aggregationProcess.getIpfsFile().getNonces();
+        EncryptedNonces operatorNonces = new EncryptedNonces(new EncryptedNonce[allNonces.size()]);
 
         for (EncryptedNonces partNonces : allNonces)
             operatorNonces.addNonce(partNonces.getNonces()[index]);
@@ -68,7 +69,7 @@ public class EncryptedNonces {
     private void setPointer() {
         this.pointer = 0;
         for (EncryptedNonce nonce : nonces) {
-            if (nonce == null) break;
+            if (nonce == null) return;
             this.pointer++;
         }
     }
@@ -82,7 +83,7 @@ public class EncryptedNonces {
     public static String serialize(EncryptedNonces encryptedNonces) {
         String[] strEncryptedNonces = new String[encryptedNonces.nonces.length];
         for (int i = 0; i < encryptedNonces.nonces.length; i++) {
-            strEncryptedNonces[i] = EncryptedNonce.serialize(encryptedNonces.nonces[i]);
+            strEncryptedNonces[i] = encryptedNonces.nonces[i].serialize();
         }
         JSONObject json = new JSONObject();
         json.put("nonces", strEncryptedNonces); //todo check redundant

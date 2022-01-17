@@ -1,11 +1,14 @@
 package datatypes.values;
 
+import applications.asker.DataQueryIPFSFile;
+import applications.operator.AggregationIPFSFile;
 import io.ipfs.api.IPFS;
 import io.ipfs.api.MerkleNode;
 import io.ipfs.api.NamedStreamable;
 import io.ipfs.multihash.Multihash;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class IPFSConnection {
 
@@ -14,7 +17,7 @@ public class IPFSConnection {
     private final IPFS ipfs;
 
     private IPFSConnection() {
-        this.ipfs = new IPFS("/ip4/127.0.0.1/tcp/5001");
+        this.ipfs = new IPFS("/ip4/192.168.0.106/tcp/5001");
         try {
             ipfs.refs.local();
         } catch (IOException e) {
@@ -32,14 +35,9 @@ public class IPFSConnection {
      * @param serFile the IPFS file.
      * @return the hash of the new file.
      */
-    public Multihash addFile(IPFSFile serFile) {
-        NamedStreamable.ByteArrayWrapper file = new NamedStreamable.ByteArrayWrapper(IPFSFile.serialize(serFile));
-        MerkleNode addResult = null;
-        try {
-            addResult = ipfs.add(file).get(0);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public Multihash addFile(IPFSFile serFile) throws IOException {
+        NamedStreamable.ByteArrayWrapper file = new NamedStreamable.ByteArrayWrapper(serFile.serialize().getBytes(StandardCharsets.UTF_8));
+        MerkleNode addResult = ipfs.add(file).get(0);
         return addResult.hash;
     }
 
@@ -49,8 +47,9 @@ public class IPFSConnection {
      * @param hash the hash associated with the file.
      * @return the IPFS file.
      */
-    public IPFSFile getFile(String hash) {
-        return IPFSConnection.getInstance().getFile(Multihash.fromHex(hash));
+    public DataQueryIPFSFile getDataQueryIPFSFile(Multihash hash) throws IOException {
+        byte[] file = ipfs.cat(hash);
+        return DataQueryIPFSFile.deserialize(new String(file));
     }
 
     /**
@@ -59,14 +58,9 @@ public class IPFSConnection {
      * @param hash the hash associated with the file.
      * @return the IPFS file.
      */
-    public IPFSFile getFile(Multihash hash) {
-        byte[] file = null;
-        try {
-            file = ipfs.cat(hash);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return IPFSFile.deserialize(file, -1);
+    public AggregationIPFSFile getAggregationIPFSFile(Multihash hash) throws IOException {
+        byte[] file = ipfs.cat(hash);
+        return AggregationIPFSFile.deserialize(new String(file));
     }
 
     public static IPFSConnection getInstance() {

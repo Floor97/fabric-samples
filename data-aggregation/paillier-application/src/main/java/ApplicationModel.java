@@ -9,7 +9,7 @@ public class ApplicationModel {
 
     private final HashMap<String, OperatorKeyStore> queryKeys;
     private final HashSet<String> ids;
-    private int operatorThreshold = 10;
+    private int operatorThreshold = 0;
 
     private ApplicationModel() {
         queryKeys = new HashMap<>();
@@ -46,18 +46,6 @@ public class ApplicationModel {
 
     public OperatorKeyStore getKey(String id) {
         return queryKeys.get(id);
-    }
-
-    public void addKey(String id, OperatorKeyStore keys) {
-        queryKeys.put(id, keys);
-    }
-
-    public HashSet<String> getIds() {
-        return ids;
-    }
-
-    public boolean containsId(String id) {
-        return ids.contains(id);
     }
 
     public int getOperatorThreshold() {

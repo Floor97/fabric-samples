@@ -1,6 +1,6 @@
 package datatypes.values;
 
-public class Pair <C,E> {
+public class Pair<C, E> {
 
     private C p1;
     private E p2;
