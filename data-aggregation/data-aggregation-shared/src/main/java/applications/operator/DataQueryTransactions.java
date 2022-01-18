@@ -3,16 +3,13 @@ package applications.operator;
 import datatypes.values.EncryptedNonce;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
-import org.hyperledger.fabric.gateway.Transaction;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.Scanner;
-import java.util.concurrent.TimeoutException;
 
-public class QueryTransactions {
+public class DataQueryTransactions extends ParticipantTransaction {
     private static final Scanner scan = new Scanner(System.in);
 
     /**
@@ -54,22 +51,5 @@ public class QueryTransactions {
         );
 
         System.out.printf("Asset exists: %s%n", new String(responseExists, StandardCharsets.UTF_8));
-    }
-
-    private static String scanNextLine(String message) {
-        System.out.print(message);
-        return scan.next();
-    }
-
-    public static byte[] repeat(Transaction transaction, String[] args) throws InterruptedException {
-        for (int i = 0; i < 10; i++) {
-            try {
-                return transaction.submit(args);
-            } catch (ContractException | TimeoutException | InterruptedException e) {
-                System.out.println("Failed to commit transaction, trying again..." + i);
-                Thread.sleep(new Random().nextInt(10) * 200 + i * 1000);
-            }
-        }
-        throw new RuntimeException("Failed to commit transaction");
     }
 }

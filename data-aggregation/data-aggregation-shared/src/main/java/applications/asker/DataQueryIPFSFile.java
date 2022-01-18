@@ -11,11 +11,7 @@ import java.util.Arrays;
 
 public class DataQueryIPFSFile extends IPFSFile {
 
-    private EncryptedNonces nonces;
-
-    public DataQueryIPFSFile(String paillierKey, NTRUEncryptionPublicKeyParameters postqKey) {
-        super(paillierKey, postqKey);
-    }
+    private final EncryptedNonces nonces;
 
     public DataQueryIPFSFile(String paillierKey, NTRUEncryptionPublicKeyParameters postqKey, EncryptedData data, EncryptedNonces nonces) {
         super(paillierKey, postqKey, data);

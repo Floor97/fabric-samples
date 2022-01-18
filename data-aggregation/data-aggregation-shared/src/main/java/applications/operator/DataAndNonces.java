@@ -8,10 +8,12 @@ import encryption.NTRUEncryption;
 import encryption.PaillierEncryption;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 
+import java.io.File;
+import java.io.RandomAccessFile;
 import java.math.BigInteger;
 import java.util.Random;
 
-public class DataGenerator {
+public class DataAndNonces {
 
     /**
      * Selects a random positive int for both the data and the nonces. Obfuscates
@@ -24,7 +26,7 @@ public class DataGenerator {
      * @throws InvalidCipherTextException thrown by the NTRUEncrypt encrypt method.
      */
     public static Pair<EncryptedData, EncryptedNonces> generateDataAndNonces(String modulus, String[] postQuantumPks) throws InvalidCipherTextException {
-        BigInteger data = new BigInteger(String.valueOf(new Random().nextInt(Integer.MAX_VALUE)));
+        BigInteger data = new BigInteger(DataAndNonces.getData());
         System.out.println("data: " + data);
         EncryptedNonces nonces = new EncryptedNonces(new EncryptedNonce[postQuantumPks.length]);
         for (String postQuantumPk : postQuantumPks) {
@@ -35,5 +37,23 @@ public class DataGenerator {
             nonces.addNonce(new EncryptedNonce(NTRUEncryption.encrypt(nonce.getBytes(), postQuantumPk)));
         }
         return new Pair<>(PaillierEncryption.encrypt(data, modulus), nonces);
+    }
+
+    /**
+     * Reads a random data entry from a dataset.
+     *
+     * @return the data entry from the dataset.
+     */
+    private static String getData() {
+        try {
+            File f = new File("src/main/resources/AEP_hourly.csv");
+            RandomAccessFile file = new RandomAccessFile(f, "r");
+            int line = new Random().nextInt(10000);
+            file.seek(28 * line + 16);
+            return file.readLine().substring(20, 25);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Could not find dataset");
+        }
     }
 }

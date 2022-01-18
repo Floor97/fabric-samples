@@ -8,17 +8,15 @@ import encryption.NTRUEncryption;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyGenerationParameters;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
-import org.hyperledger.fabric.gateway.Transaction;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
-public class AggregationTransactions {
+public class AggregationTransactions extends ParticipantTransaction {
 
     private static final Scanner scan = new Scanner(System.in);
 
@@ -46,7 +44,7 @@ public class AggregationTransactions {
                 String.valueOf(dataQuery.getSettings().getNrOperators()),
                 dataQuery.getIpfsFile().getHash().toHex()
         });
-        if(Integer.parseInt(new String(index)) != -1) keystore.setIndex(Integer.parseInt(new String(index)));
+        if (Integer.parseInt(new String(index)) != -1) keystore.setIndex(Integer.parseInt(new String(index)));
 
         return keystore;
     }
@@ -146,38 +144,5 @@ public class AggregationTransactions {
                         scanNextLine("Transaction Exists has been selected\nID: ")
                 )
         );
-    }
-
-    /**
-     * Helper method that deserializes the response of a transaction and prints it.
-     *
-     * @param response the response of a aggregation process contract transaction.
-     */
-    private static void printResponse(byte[] response) throws IOException {
-        AggregationProcess serAggregationProcess = AggregationProcess.deserialize(response);
-        System.out.println("Response: " + serAggregationProcess);
-    }
-
-    /**
-     * Helper method that prints the message and sends back the next input on System.in.
-     *
-     * @param message the message that will be printed.
-     * @return the next input on System.in.
-     */
-    private static String scanNextLine(String message) {
-        System.out.print(message);
-        return scan.next();
-    }
-
-    public static byte[] repeat(Transaction transaction, String[] args) throws InterruptedException {
-        for(int i = 0; i < 10; i++) {
-            try {
-                return transaction.submit(args);
-            } catch (ContractException | TimeoutException | InterruptedException e) {
-                System.out.println("Failed to commit transaction, trying again..." + i);
-                Thread.sleep(new Random().nextInt(10) * 200 + i * 1000);
-            }
-        }
-        throw new RuntimeException("Failed to commit transaction");
     }
 }

@@ -31,6 +31,7 @@ public class DataQueryContract implements ContractInterface {
      * @param id          the id of the new data query process.
      * @param nrOperators the number of operators used in the process.
      * @param duration    the end time for the process.
+     * @throws IOException when the connection with IPFS cannot be made.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void Start(Context ctx, String id, int nrOperators, long duration) throws IOException {
@@ -52,6 +53,16 @@ public class DataQueryContract implements ContractInterface {
         stub.putStringState(id, serDataQuery);
     }
 
+    /**
+     * Sets the data, number of participants and adds the respective nonce of operator zero. If only
+     * one operator was required the DoneQuery event is set, otherwise ResultQuery. Throws an exception
+     * if the state of the process is not waiting, or if the data query process does not exist.
+     *
+     * @param ctx            the transaction context.
+     * @param id             the id of the data query process.
+     * @param nrParticipants the number of participants in the data aggregation process.
+     * @throws IOException when the connection with IPFS cannot be made.
+     */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void AddOperatorZero(Context ctx, String id, int nrParticipants) throws IOException {
         ChaincodeStub stub = retrieveStub(ctx, id);
@@ -64,8 +75,8 @@ public class DataQueryContract implements ContractInterface {
         DataQueryIPFSFile ipfsFile = dataQuery.getIpfsFile();
         EncryptedData encData = EncryptedData.deserialize(new String(trans.get("data")));
 
-            dataQuery.getIpfsFile().setData(encData);
-            dataQuery.setNrParticipants(nrParticipants);
+        dataQuery.getIpfsFile().setData(encData);
+        dataQuery.setNrParticipants(nrParticipants);
         ipfsFile.getNonces().addNonce(EncryptedNonce.deserialize(new String(trans.get("nonces"))));
 
         String serDataQuery;
@@ -92,10 +103,10 @@ public class DataQueryContract implements ContractInterface {
      * @param ctx            the transaction context.
      * @param id             the id of the data query process.
      * @param nrParticipants the number of participants in the data aggregation process.
-     * @return the DataQuery object as a String.
+     * @throws IOException when the connection with IPFS cannot be made.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String AddOperatorN(Context ctx, String id, int nrParticipants) throws IOException {
+    public void AddOperatorN(Context ctx, String id, int nrParticipants) throws IOException {
         ChaincodeStub stub = retrieveStub(ctx, id);
         Map<String, byte[]> trans = stub.getTransient();
         DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
@@ -120,7 +131,6 @@ public class DataQueryContract implements ContractInterface {
         } else serDataQuery = dataQuery.serialize();
 
         stub.putStringState(id, serDataQuery);
-        return serDataQuery;
     }
 
     /**
@@ -130,6 +140,7 @@ public class DataQueryContract implements ContractInterface {
      *
      * @param ctx the transaction context.
      * @param id  the unique id of the data query.
+     * @throws IOException when the connection with IPFS cannot be made.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void Close(Context ctx, String id) throws IOException {

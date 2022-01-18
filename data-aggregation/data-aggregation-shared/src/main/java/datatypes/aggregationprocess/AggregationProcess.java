@@ -1,6 +1,5 @@
 package datatypes.aggregationprocess;
 
-import applications.asker.DataQueryIPFSFile;
 import applications.operator.AggregationIPFSFile;
 import datatypes.values.IPFSConnection;
 import io.ipfs.multihash.Multihash;

@@ -20,14 +20,6 @@ public class EncryptedNonces {
         setPointer();
     }
 
-    public EncryptedNonces(byte[][] nonces) {
-        this.nonces = new EncryptedNonce[nonces.length];
-        for (int i = 0; i < nonces.length; i++) {
-            this.nonces[i] = new EncryptedNonce(nonces[i]);
-        }
-        setPointer();
-    }
-
     /**
      * Makes the list of nonces encrypted with kp and adds them together, and re-encrypts the sum
      * with the postQuantumPk.
