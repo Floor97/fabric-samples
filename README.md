@@ -45,7 +45,9 @@ Step 4. When the network and ipfs are running, simply start the applications in 
 ## 4 Credit
 This project employs the test network from the [Hyperledger Fabric Samples repository](https://github.com/hyperledger/fabric-samples) to test smart contracts.
 Hyperledger Project source code files are made available under the Apache License, Version 2.0 (Apache-2.0), located in the [LICENSE](LICENSE) file.
-Hyperledger Project documentation files are made available under the Creative Commons Attribution 4.0 International License (CC-BY-4.0), available at http://creativecommons.org/licenses/by/4.0/.
+Hyperledger Project documentation files are made available under the Creative Commons Attribution 4.0 International License (CC-BY-4.0), available at http://creativecommons.org/licenses/by/4.0/. 
+
+This project utilises the dependency [Bouncy Castle](https://github.com/bcgit/bc-java), due to conflicts with other dependencies instead of including their dependency in the build.gradle a jar was made containing only the classes necessary. Their license can be found [here](https://github.com/bcgit/bc-java/blob/master/LICENSE.html).
 
 Regueiro, C., Seco, I., de Diego, S., Lage, O., & Etxebarria, L. (2021). Privacy-enhancing distributed protocol for data aggregation based on blockchain and homomorphic encryption. <em>Information Processing & Management, 58(6)</em>, 102745. https://doi.org/https://doi.org/10.1016/j.ipm.2021.102745
 
