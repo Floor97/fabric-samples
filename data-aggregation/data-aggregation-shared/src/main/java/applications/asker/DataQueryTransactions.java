@@ -30,6 +30,9 @@ public class DataQueryTransactions {
      * @throws TimeoutException     thrown by the submit method.
      */
     public static Pair<String, DataQueryKeyStore> start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
+        String nrOps = scanNextLine("Transaction Start selected\nNumber of Operators: ");
+        String timeLimit = scanNextLine("Time limit: ");
+        System.out.println("Begin Step 1: " + System.currentTimeMillis());
         String id = IdFactory.getInstance().createId();
         DataQueryKeyStore newKeys = new DataQueryKeyStore(NTRUEncryptionKeyGenerationParameters.APR2011_743_FAST, 4096);
 
@@ -39,8 +42,8 @@ public class DataQueryTransactions {
 
         contract.createTransaction("Start").setTransient(trans).submit(
                 id,
-                scanNextLine("Transaction Start selected\nNumber of Operators: "),
-                scanNextLine("Duration: ")
+                nrOps,
+                timeLimit
         );
         return new Pair<>(id, newKeys);
     }

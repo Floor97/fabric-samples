@@ -40,7 +40,8 @@ and run the following line as administrator in powershell:
 IP_inet should be the eth0 inet IP as seen from inside WSL.
 Try http://YOUR_IP:5001/api/v0/version in your browser to see if it works. You should see "405 - method not allowed".
 
-Step 4. When the network and ipfs are running, simply start the applications in your favourite IDE. Keep in mind that the applications should also be run with WSL as target. When the applications start you are prompted to fill in a username, this is used in the creation of ids for data query processes.
+Step 4. When the network and ipfs are running, run the application in wsl by going to the corresponding application folder and running:
+	./gradlew --console=plain run
 
 ## 4 Credit
 This project employs the test network from the [Hyperledger Fabric Samples repository](https://github.com/hyperledger/fabric-samples) to test smart contracts.

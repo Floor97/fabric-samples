@@ -42,6 +42,7 @@ public class ApplicationController {
                     case "start":
                         Pair<String, DataQueryKeyStore> storePair = DataQueryTransactions.start(contract);
                         ApplicationModel.getInstance().addProcess(storePair.getP1(), storePair.getP2());
+                        System.out.println("End Step 1: " + System.currentTimeMillis());
                         break;
                     case "close":
                         DataQueryTransactions.close(contract);
@@ -81,6 +82,7 @@ public class ApplicationController {
     private static void setContractListener(Contract contract) {
         Consumer<ContractEvent> consumer = contractEvent -> {
             if (!contractEvent.getTransactionEvent().isValid() || !"DoneQuery".equals(contractEvent.getName())) return;
+            System.out.println("Begin Step 8: " + System.currentTimeMillis());
 
             try {
                 DataQuery dataQuery = DataQuery.deserialize(contractEvent.getPayload().get());
@@ -95,6 +97,7 @@ public class ApplicationController {
                 }
 
                 System.out.println("Result of " + dataQuery.getId() + " is " + dataAndNonces.toString());
+                System.out.println("End Step 8: " + System.currentTimeMillis());
 
             } catch (IOException e) {
                 System.err.println("Could not deserialize data query asset!");
