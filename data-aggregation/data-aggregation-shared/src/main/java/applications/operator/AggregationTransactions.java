@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
-public class AggregationTransactions {
+public class AggregationTransactions extends ParticipantTransaction {
 
     private static final Scanner scan = new Scanner(System.in);
 
@@ -39,12 +39,12 @@ public class AggregationTransactions {
         Map<String, byte[]> transientData = new HashMap<>();
 
         transientData.put("operator", NTRUEncryption.serialize(keystore.getNtruEncryption().getPublic()).getBytes(StandardCharsets.UTF_8));
-        byte[] index = contractAgg.createTransaction("Start").setTransient(transientData).submit(
+        byte[] index = repeat(contractAgg.createTransaction("Start").setTransient(transientData), new String[]{
                 dataQuery.getId(),
                 String.valueOf(dataQuery.getSettings().getNrOperators()),
                 dataQuery.getIpfsFile().getHash().toHex()
-        );
-        keystore.setIndex(Integer.parseInt(new String(index)));
+        });
+        if (Integer.parseInt(new String(index)) != -1) keystore.setIndex(Integer.parseInt(new String(index)));
 
         return keystore;
     }
@@ -70,7 +70,7 @@ public class AggregationTransactions {
         transientData.put("data", data.serialize().getBytes(StandardCharsets.UTF_8));
         transientData.put("nonces", EncryptedNonces.serialize(nonces).getBytes(StandardCharsets.UTF_8));
 
-        contract.createTransaction("Add").setTransient(transientData).submit(id);
+        repeat(contract.createTransaction("Add").setTransient(transientData), new String[]{id});
     }
 
     /**
@@ -85,7 +85,7 @@ public class AggregationTransactions {
      * @throws InterruptedException thrown by the submit method.
      * @throws TimeoutException     thrown by the submit method.
      */
-    public static AggregationProcess close(Contract contractAgg, String id) throws ContractException, InterruptedException, TimeoutException {
+    public static AggregationProcess close(Contract contractAgg, String id) throws ContractException, InterruptedException, TimeoutException, IOException {
         byte[] response = contractAgg.submitTransaction(
                 "Close",
                 id
@@ -102,10 +102,10 @@ public class AggregationTransactions {
      * @throws ContractException when an exception occurs in the aggregation process contract.
      *                           An exception occurs when the aggregation process asset does not exist.
      */
-    public static AggregationProcess retrieve(Contract contract, String id) throws ContractException {
+    public static AggregationProcess retrieve(Contract contract, String id) throws ContractException, IOException {
         return AggregationProcess.deserialize(
                 contract.evaluateTransaction(
-                        "RetrieveAggregationProcess",
+                        "Retrieve",
                         id
                 )
         );
@@ -122,7 +122,7 @@ public class AggregationTransactions {
      * @throws InterruptedException thrown by the submit method.
      * @throws TimeoutException     thrown by the submit method.
      */
-    public static AggregationProcess remove(Contract contract, String id) throws ContractException, InterruptedException, TimeoutException {
+    public static AggregationProcess remove(Contract contract, String id) throws ContractException, InterruptedException, TimeoutException, IOException {
         return AggregationProcess.deserialize(
                 contract.submitTransaction(
                         "RemoveAggregationProcess",
@@ -137,33 +137,12 @@ public class AggregationTransactions {
      * @param contract the aggregation process contract.
      * @throws ContractException thrown by the submit method.
      */
-    public static void exists(Contract contract) throws ContractException {
+    public static void exists(Contract contract) throws ContractException, IOException {
         printResponse(
                 contract.evaluateTransaction(
-                        "AggregationProcessExists",
+                        "Exists",
                         scanNextLine("Transaction Exists has been selected\nID: ")
                 )
         );
-    }
-
-    /**
-     * Helper method that deserializes the response of a transaction and prints it.
-     *
-     * @param response the response of a aggregation process contract transaction.
-     */
-    private static void printResponse(byte[] response) {
-        AggregationProcess serAggregationProcess = AggregationProcess.deserialize(response);
-        System.out.println("Response: " + serAggregationProcess);
-    }
-
-    /**
-     * Helper method that prints the message and sends back the next input on System.in.
-     *
-     * @param message the message that will be printed.
-     * @return the next input on System.in.
-     */
-    private static String scanNextLine(String message) {
-        System.out.print(message);
-        return scan.next();
     }
 }

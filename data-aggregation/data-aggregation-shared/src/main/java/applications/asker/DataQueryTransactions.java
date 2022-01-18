@@ -81,16 +81,17 @@ public class DataQueryTransactions {
      * The Remove transaction in the data query contract is submitted.
      *
      * @param contract the data query contract.
+     * @param id       the id of the data query asset.
      * @throws ContractException    when an exception occurs in the data query contract. This occurs
      *                              when the data query referenced by the id is already in the closed state or does not exist.
      * @throws InterruptedException thrown by the submit method.
      * @throws TimeoutException     thrown by the submit method.
      */
-    public static void remove(Contract contract) throws ContractException, InterruptedException, TimeoutException, IOException {
+    public static void remove(Contract contract, String id) throws ContractException, InterruptedException, TimeoutException, IOException {
         printResponse(
                 contract.submitTransaction(
                         "Remove",
-                        scanNextLine("Transaction Remove selected\nID: ")
+                        id
                 )
         );
     }

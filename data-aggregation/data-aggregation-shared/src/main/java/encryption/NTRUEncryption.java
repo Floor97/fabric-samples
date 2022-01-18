@@ -12,7 +12,7 @@ import java.util.Base64;
 public class NTRUEncryption {
 
     private static final NTRUEngine ntru = new NTRUEngine();
-    private AsymmetricCipherKeyPair keys;
+    private final AsymmetricCipherKeyPair keys;
 
     public NTRUEncryption(NTRUEncryptionKeyGenerationParameters params) {
         params.polyType = NTRUParameters.TERNARY_POLYNOMIAL_TYPE_SIMPLE;

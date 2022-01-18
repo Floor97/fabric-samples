@@ -26,7 +26,7 @@ public class IPFSFile {
     }
 
     public Multihash getHash() throws IOException {
-        if (hash == null) createHash();
+        createHash();
         return hash;
     }
 

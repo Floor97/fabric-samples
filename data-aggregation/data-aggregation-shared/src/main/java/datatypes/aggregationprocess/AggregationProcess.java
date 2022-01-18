@@ -1,9 +1,13 @@
 package datatypes.aggregationprocess;
 
 import applications.operator.AggregationIPFSFile;
+import datatypes.values.IPFSConnection;
+import io.ipfs.multihash.Multihash;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 import org.json.JSONObject;
+
+import java.io.IOException;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -41,11 +45,11 @@ public class AggregationProcess {
      * @param data the JSON.
      * @return the AggregationProcess object.
      */
-    public static AggregationProcess deserialize(byte[] data) {
+    public static AggregationProcess deserialize(byte[] data) throws IOException {
         JSONObject json = new JSONObject(new String(data, UTF_8));
 
         String id = json.getString("id");
-        AggregationIPFSFile ipfsFile = AggregationIPFSFile.deserialize(json.getString("file"));
+        AggregationIPFSFile ipfsFile = IPFSConnection.getInstance().getAggregationIPFSFile(Multihash.fromHex(json.getString("hash")));
 
         AggregationProcess aggregationProcess = new AggregationProcess(id, ipfsFile);
         aggregationProcess.state = json.getEnum(AggregationProcessState.class, "state");
@@ -58,10 +62,10 @@ public class AggregationProcess {
      *
      * @return the JSON value of the aggregation process object.
      */
-    public String serialize() {
+    public String serialize() throws IOException {
         JSONObject json = new JSONObject()
                 .put("id", this.id)
-                .put("file", this.ipfsFile.serialize())
+                .put("hash", this.ipfsFile.getHash().toHex())
                 .put("state", this.state);
         return json.toString();
     }

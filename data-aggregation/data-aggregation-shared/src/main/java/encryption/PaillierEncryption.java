@@ -10,7 +10,7 @@ import java.math.BigInteger;
 
 public class PaillierEncryption {
 
-    private PaillierPrivateKey keys;
+    private final PaillierPrivateKey keys;
 
     public PaillierEncryption(int keySize) {
         this.keys = PaillierPrivateKey.create(keySize);

@@ -40,15 +40,17 @@ public class AggregationProcessContract implements ContractInterface {
      * @param id          the unique id of the aggregation process.
      * @param nrOperators the number of operators required for the aggregation process.
      * @param ipfsHash    the unique hash from the data query ipfs file.
+     * @throws IOException when the connection with IPFS cannot be made.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public int Start(Context ctx, String id, int nrOperators, String ipfsHash) throws IOException {
         ChaincodeStub stub = ctx.getStub();
         Map<String, byte[]> map = stub.getTransient();
-        AggregationProcess aggregationProcess = null;
+        AggregationProcess aggregationProcess;
         if (Exists(ctx, id)) {
             aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
-            if (!aggregationProcess.isSelecting()) throw new ChaincodeException("Process is not in selection phase");
+            if ((!aggregationProcess.isSelecting()) || aggregationProcess.getIpfsFile().isOperatorKeysFull())
+                return -1;
         } else {
             DataQueryIPFSFile dataIpfsFile = IPFSConnection.getInstance().getDataQueryIPFSFile(Multihash.fromHex(ipfsHash));
             AggregationIPFSFile aggIpfsFile = new AggregationIPFSFile(
@@ -58,18 +60,18 @@ public class AggregationProcessContract implements ContractInterface {
                     new NTRUEncryptionPublicKeyParameters[nrOperators],
                     new ArrayList<>()
             );
+            aggIpfsFile.createHash();
             aggregationProcess = new AggregationProcess(id, aggIpfsFile);
         }
 
         int index = aggregationProcess.getIpfsFile().addOperatorKey(NTRUEncryption.deserialize(map.get("operator")));
 
         String serAggregationProcess;
-        if (aggregationProcess.getIpfsFile().isFull()) {
+        if (aggregationProcess.getIpfsFile().isOperatorKeysFull()) {
             aggregationProcess.setAggregating();
             serAggregationProcess = aggregationProcess.serialize();
             stub.setEvent("StartAggregating", serAggregationProcess.getBytes(StandardCharsets.UTF_8));
-        }
-        serAggregationProcess = aggregationProcess.serialize();
+        } else serAggregationProcess = aggregationProcess.serialize();
 
         stub.putStringState(id, serAggregationProcess);
         return index;
@@ -83,9 +85,10 @@ public class AggregationProcessContract implements ContractInterface {
      *
      * @param ctx the transaction context.
      * @param id  the unique id of the aggregation process.
+     * @throws IOException when the connection with IPFS cannot be made.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void Add(Context ctx, String id) {
+    public void Add(Context ctx, String id) throws IOException {
         ChaincodeStub stub = retrieveStub(ctx, id);
         AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
 
@@ -109,7 +112,6 @@ public class AggregationProcessContract implements ContractInterface {
         } else currentData.setData(newData.getData()).setExponent(newData.getExponent());
 
         aggregationProcess.getIpfsFile().addNonces(nonces);
-
         stub.putStringState(id, aggregationProcess.serialize());
     }
 
@@ -120,9 +122,10 @@ public class AggregationProcessContract implements ContractInterface {
      *
      * @param ctx the transaction context.
      * @param id  the unique id of the aggregation process.
+     * @throws IOException when the connection with IPFS cannot be made.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String Close(Context ctx, String id) {
+    public String Close(Context ctx, String id) throws IOException {
         ChaincodeStub stub = retrieveStub(ctx, id);
 
         AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));

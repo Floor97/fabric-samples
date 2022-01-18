@@ -14,8 +14,8 @@ import java.util.stream.Collectors;
 
 public class AggregationIPFSFile extends IPFSFile {
 
-    private NTRUEncryptionPublicKeyParameters[] operatorKeys;
-    private ArrayList<EncryptedNonces> nonces;
+    private final NTRUEncryptionPublicKeyParameters[] operatorKeys;
+    private final ArrayList<EncryptedNonces> nonces;
 
     public AggregationIPFSFile(String paillierKey, NTRUEncryptionPublicKeyParameters postqKey, EncryptedData data, NTRUEncryptionPublicKeyParameters[] operatorKeys, ArrayList<EncryptedNonces> nonces) {
         super(paillierKey, postqKey, data);
@@ -28,7 +28,7 @@ public class AggregationIPFSFile extends IPFSFile {
      *
      * @param newNonces the EncryptedNonces object.
      */
-    public void addNonces(EncryptedNonces newNonces) {
+    public void addNonces(EncryptedNonces newNonces) throws IOException {
         this.nonces.add(newNonces);
     }
 
@@ -44,7 +44,6 @@ public class AggregationIPFSFile extends IPFSFile {
             if (this.operatorKeys[i] == null) {
                 if (newKey != null) {
                     this.operatorKeys[i] = newKey;
-                    this.createHash();
                 }
                 return i;
             }
@@ -58,7 +57,7 @@ public class AggregationIPFSFile extends IPFSFile {
      * @return true if the array is full, otherwise false.
      * @throws IOException thrown if an IOException occurs adding a file to the IPFS network.
      */
-    public boolean isFull() throws IOException {
+    public boolean isOperatorKeysFull() throws IOException {
         return addOperatorKey(null) == -1;
     }
 
@@ -82,7 +81,7 @@ public class AggregationIPFSFile extends IPFSFile {
         ArrayList<EncryptedNonces> nonces = new ArrayList<>();
 
         if (!parts[0].equals("[]")) {
-            String[] noncesParts = parts[0].substring(2, parts[0].length() - 2).split("],\\[", opKeys.length);
+            String[] noncesParts = parts[0].substring(2, parts[0].length() - 2).split("],\\[");
             for (String nonce : noncesParts)
                 nonces.add(new EncryptedNonces(Arrays.stream(nonce.split(",", opKeys.length)).map(EncryptedNonce::deserialize).toArray(EncryptedNonce[]::new)));
         }
@@ -109,11 +108,11 @@ public class AggregationIPFSFile extends IPFSFile {
             if (i != this.nonces.size() - 1)
                 builder.append(",");
         }
-        builder.append("]\n")
+        builder.append("]\n[")
                 .append(Arrays.stream(this.operatorKeys)
                         .map(NTRUEncryption::serialize)
-                        .collect(Collectors.toList()));
-
+                        .collect(Collectors.joining(",")))
+                .append("]");
         return builder.toString();
     }
 

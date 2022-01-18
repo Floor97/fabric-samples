@@ -1,17 +1,17 @@
 import applications.asker.DataQueryKeyStore;
-import applications.asker.IdFactory;
 import applications.asker.DataQueryTransactions;
+import applications.asker.IdFactory;
+import applications.operator.ParticipantTransaction;
 import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonce;
 import datatypes.values.EncryptedNonces;
 import datatypes.values.Pair;
-import encryption.NTRUEncryption;
-import encryption.PaillierEncryption;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractEvent;
 import org.hyperledger.fabric.gateway.ContractException;
+import org.hyperledger.fabric.shim.ChaincodeException;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -41,7 +41,7 @@ public class ApplicationController {
                 switch (scan.next()) {
                     case "start":
                         Pair<String, DataQueryKeyStore> storePair = DataQueryTransactions.start(contract);
-                        ApplicationModel.getInstance().addKey(storePair.getP1(), storePair.getP2());
+                        ApplicationModel.getInstance().addProcess(storePair.getP1(), storePair.getP2());
                         break;
                     case "close":
                         DataQueryTransactions.close(contract);
@@ -50,7 +50,9 @@ public class ApplicationController {
                         DataQueryTransactions.retrieve(contract);
                         break;
                     case "remove":
-                        DataQueryTransactions.remove(contract);
+                        String id = ParticipantTransaction.scanNextLine("Transaction Remove selected\nID: ");
+                        DataQueryTransactions.remove(contract, id);
+                        ApplicationModel.getInstance().removeProcess(id);
                         break;
                     case "exists":
                         DataQueryTransactions.exists(contract);
@@ -62,6 +64,8 @@ public class ApplicationController {
                         System.out.println("Unrecognised transaction");
                         break;
                 }
+            } catch (ChaincodeException e) {
+                System.err.println(e.getMessage());
             } catch (ContractException | InterruptedException | TimeoutException | IOException e) {
                 System.err.println("Error occured in handling transaction!");
                 e.printStackTrace();
@@ -76,23 +80,26 @@ public class ApplicationController {
      */
     private static void setContractListener(Contract contract) {
         Consumer<ContractEvent> consumer = contractEvent -> {
-            System.out.println("Event occured: " + contractEvent.getName());
-            if (!"DoneQuery".equals(contractEvent.getName())) return;
+            if (!contractEvent.getTransactionEvent().isValid() || !"DoneQuery".equals(contractEvent.getName())) return;
+
             try {
                 DataQuery dataQuery = DataQuery.deserialize(contractEvent.getPayload().get());
                 EncryptedData data = dataQuery.getIpfsFile().getData();
                 EncryptedNonces nonces = dataQuery.getIpfsFile().getNonces();
                 DataQueryKeyStore keystore = ApplicationModel.getInstance().getKey(dataQuery.getId());
+
                 BigInteger dataAndNonces = keystore.getPaillierEncryption().decrypt(data);
                 for (EncryptedNonce nonce : nonces.getNonces()) {
                     byte[] decryptedNonce = keystore.getNtruEncryption().decrypt(nonce.getNonce());
                     dataAndNonces = dataAndNonces.subtract(new BigInteger(new String(decryptedNonce)));
                 }
+
                 System.out.println("Result of " + dataQuery.getId() + " is " + dataAndNonces.toString());
+
             } catch (IOException e) {
                 System.err.println("Could not deserialize data query asset!");
                 e.printStackTrace();
-            } catch(InvalidCipherTextException e) {
+            } catch (InvalidCipherTextException e) {
                 System.err.println("Could not decrypt nonces with NTRUEncrypt!");
                 e.printStackTrace();
             }

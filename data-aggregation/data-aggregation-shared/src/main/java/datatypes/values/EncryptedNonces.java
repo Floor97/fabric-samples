@@ -7,6 +7,7 @@ import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.json.JSONObject;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 public class EncryptedNonces {
@@ -16,14 +17,6 @@ public class EncryptedNonces {
 
     public EncryptedNonces(EncryptedNonce[] nonces) {
         this.nonces = nonces;
-        setPointer();
-    }
-
-    public EncryptedNonces(byte[][] nonces) {
-        this.nonces = new EncryptedNonce[nonces.length];
-        for (int i = 0; i < nonces.length; i++) {
-            this.nonces[i] = new EncryptedNonce(nonces[i]);
-        }
         setPointer();
     }
 
@@ -40,9 +33,8 @@ public class EncryptedNonces {
     public static EncryptedNonce condenseNonces(OperatorKeyStore keystore, EncryptedNonces encNonces, String postQuantumPk) throws InvalidCipherTextException {
         BigInteger summedNonce = new BigInteger("0");
         for (EncryptedNonce encNonce : encNonces.getNonces())
-            summedNonce = summedNonce.add(new BigInteger(keystore.getNtruEncryption().decrypt(encNonce.getNonce())));
-
-        return new EncryptedNonce(NTRUEncryption.encrypt(summedNonce.toByteArray(), postQuantumPk));
+            summedNonce = summedNonce.add(new BigInteger(new String(keystore.getNtruEncryption().decrypt(encNonce.getNonce()))));
+        return new EncryptedNonce(NTRUEncryption.encrypt(summedNonce.toString().getBytes(StandardCharsets.UTF_8), postQuantumPk));
     }
 
     /**

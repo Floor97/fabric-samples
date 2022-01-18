@@ -5,7 +5,7 @@ import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyGenerationParameters;
 
 public class OperatorKeyStore extends KeyStore {
 
-    private int index;
+    private int index = -1;
 
     public OperatorKeyStore(NTRUEncryptionKeyGenerationParameters params) {
         super(params);
