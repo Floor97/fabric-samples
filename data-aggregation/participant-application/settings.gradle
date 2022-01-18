@@ -1,4 +1,4 @@
-rootProject.name = 'paillier-application'
+rootProject.name = 'participant-application'
 include ':data-aggregation-shared'
 project (':data-aggregation-shared').projectDir = new File('../data-aggregation-shared')
 

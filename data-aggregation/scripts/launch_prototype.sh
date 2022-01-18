@@ -12,9 +12,9 @@ function deploy() {
     # First deploy the things
     # Can't use the network.sh function, it would deploy on channel 2 as well	
 	./$SCRIPTS/deployCC.sh "participants" "aggregationprocess" \
-		"../data-aggregation/paillier-contract-prototype/" "java" "$1"
+		"../data-aggregation/aggregation-process-contract/" "java" "$1"
 	./network.sh deployCC -c asker -ccn "query" \
-		-ccp "../data-aggregation/data-query-contract-prototype/" \
+		-ccp "../data-aggregation/data-query-contract/" \
 		-ccl java -ccv $1
 
     # Export the path and set globals

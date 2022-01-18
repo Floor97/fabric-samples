@@ -1,6 +1,6 @@
 =============== Jan 18, 2022 (UTC) ===============
-11:43:25.989151 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
-11:43:26.015137 db@open opening
-11:43:26.020641 version@stat F·[] S·0B[] Sc·[]
-11:43:26.027374 db@janitor F·2 G·0
-11:43:26.028196 db@open done T·12.1802ms
+13:14:06.302420 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+13:14:06.313734 db@open opening
+13:14:06.315767 version@stat F·[] S·0B[] Sc·[]
+13:14:06.319573 db@janitor F·2 G·0
+13:14:06.319838 db@open done T·5.8079ms
