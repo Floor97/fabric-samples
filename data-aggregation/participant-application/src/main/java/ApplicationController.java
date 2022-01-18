@@ -1,3 +1,4 @@
+import applications.asker.DataQueryTransactions;
 import applications.operator.*;
 import datatypes.aggregationprocess.AggregationProcess;
 import datatypes.dataquery.DataQuery;
@@ -30,7 +31,7 @@ public class ApplicationController {
      * @param contractQuery the data query contract.
      */
     public static void applicationLoop(Contract contractAgg, Contract contractQuery) {
-        ApplicationController.setAggregationProcessConsumers(contractAgg);
+        ApplicationController.setAggregationProcessConsumers(contractAgg, contractQuery);
         ApplicationController.setDataQueryConsumers(contractQuery, contractAgg);
         Scanner scan = new Scanner(System.in);
 
@@ -75,36 +76,21 @@ public class ApplicationController {
                 switch (contractEvent.getName()) {
                     case "StartQuery":
                         System.out.println("StartQuery");
-                        OperatorKeyStore keystore = AggregationTransactions.start(contractAgg, data);
-                        if (keystore.getIndex() != -1) ApplicationModel.getInstance().addProcess(data.getId(), keystore);
+                        OperatorKeyStore keystore = AggregationTransactions.start(contractAgg, data.getSettings().getNrExpectedParticipants(), data);
+                        if (keystore.getIndex() != -1)
+                            ApplicationModel.getInstance().addProcess(data.getId(), keystore);
                         if (keystore.getIndex() != 0) return;
 
                         ApplicationController.ruleTimeLimit(contractQuery, contractAgg, data, keystore);
                         break;
-                    case "ResultQuery":
-                        System.out.println("ResultQuery");
-                        OperatorKeyStore opKeystore = ApplicationModel.getInstance().getKey(data.getId());
-                        if (opKeystore == null || opKeystore.getIndex() == 0) return;
-
-                        AggregationProcess aggregationProcess = AggregationTransactions.retrieve(contractAgg, data.getId());
-                        DataQueryTransactions.addOperator(contractQuery, "AddOperatorN", data.getId(), aggregationProcess.getIpfsFile(),
-                                EncryptedNonces.condenseNonces(
-                                        opKeystore,
-                                        EncryptedNonces.getOperatorNonces(aggregationProcess, opKeystore.getIndex()),
-                                        NTRUEncryption.serialize(data.getIpfsFile().getPostqKey())
-                                ),
-                                opKeystore.getIndex()
-                        );
-                        break;
                     case "RemoveQuery":
                         System.out.println("RemoveQuery");
-                        if (ApplicationModel.getInstance().removeProcess(data.getId()))
-                            AggregationTransactions.remove(contractAgg, data.getId());
+                        AggregationTransactions.remove(contractAgg, data.getId());
                         break;
                 }
             } catch (ChaincodeException e) {
                 System.err.println(e.getMessage());
-            } catch (InvalidCipherTextException | ContractException | IOException | InterruptedException | TimeoutException e) {
+            } catch (ContractException | IOException | InterruptedException | TimeoutException e) {
                 e.printStackTrace();
             }
         };
@@ -116,21 +102,39 @@ public class ApplicationController {
      *
      * @param contractAgg the aggregation process contract.
      */
-    private static void setAggregationProcessConsumers(Contract contractAgg) {
+    private static void setAggregationProcessConsumers(Contract contractAgg, Contract contractQuery) {
         Consumer<ContractEvent> consumer = contractEvent -> {
             try {
                 if (!contractEvent.getTransactionEvent().isValid()) return;
                 AggregationProcess aggregationProcess = AggregationProcess.deserialize(contractEvent.getPayload().get());
-                if ("StartAggregating".equals(contractEvent.getName())
-                        && (ApplicationModel.getInstance().getOperatorThreshold() <= aggregationProcess.getIpfsFile().getOperatorKeys().length
-                        || ApplicationModel.getInstance().getKey(aggregationProcess.getId()) != null)) {
-                    System.out.println("StartAggregation");
+                switch (contractEvent.getName()) {
+                    case "StartAggregating":
+                        if (ApplicationModel.getInstance().getOperatorThreshold() > aggregationProcess.getIpfsFile().getOperatorKeys().length
+                                && ApplicationModel.getInstance().getKey(aggregationProcess.getId()) == null) return;
+                        System.out.println("StartAggregation");
 
-                    Pair<EncryptedData, EncryptedNonces> dataAndNonces = DataAndNonces.generateDataAndNonces(
-                            aggregationProcess.getIpfsFile().getPaillierKey(),
-                            Arrays.stream(aggregationProcess.getIpfsFile().getOperatorKeys()).map(NTRUEncryption::serialize).toArray(String[]::new)
-                    );
-                    AggregationTransactions.add(contractAgg, aggregationProcess.getId(), dataAndNonces.getP1(), dataAndNonces.getP2());
+                        Pair<EncryptedData, EncryptedNonces> dataAndNonces = DataAndNonces.generateDataAndNonces(
+                                aggregationProcess.getIpfsFile().getPaillierKey(),
+                                Arrays.stream(aggregationProcess.getIpfsFile().getOperatorKeys()).map(NTRUEncryption::serialize).toArray(String[]::new)
+                        );
+                        AggregationTransactions.add(contractAgg, aggregationProcess.getId(), dataAndNonces.getP1(), dataAndNonces.getP2());
+
+                        break;
+                    case "ParticipantsReached":
+                        System.out.println("ParticipantsReached");
+                        OperatorKeyStore opKeystore = ApplicationModel.getInstance().getKey(aggregationProcess.getId());
+                        if (opKeystore == null) return;
+
+                        applications.operator.DataQueryTransactions.add(contractQuery, aggregationProcess.getId(), aggregationProcess.getIpfsFile(),
+                                EncryptedNonces.condenseNonces(
+                                        opKeystore,
+                                        EncryptedNonces.getOperatorNonces(aggregationProcess, opKeystore.getIndex()),
+                                        NTRUEncryption.serialize(aggregationProcess.getIpfsFile().getPostqKey())
+                                ),
+                                opKeystore.getIndex()
+                        );
+                        ApplicationModel.getInstance().removeProcess(aggregationProcess.getId());
+                        break;
                 }
             } catch (ChaincodeException e) {
                 System.err.println(e.getMessage());
@@ -154,15 +158,18 @@ public class ApplicationController {
         TimerTask action = new TimerTask() {
             public void run() {
                 try {
+                    if (!ApplicationModel.getInstance().containsId(data.getId())) return;
+
                     AggregationProcess aggregationProcess = AggregationTransactions.close(contractAgg, data.getId());
 
-                    DataQueryTransactions.addOperator(contractQuery, "AddOperatorZero", aggregationProcess.getId(), aggregationProcess.getIpfsFile(),
+                    applications.operator.DataQueryTransactions.add(contractQuery, aggregationProcess.getId(), aggregationProcess.getIpfsFile(),
                             EncryptedNonces.condenseNonces(
                                     keystore,
                                     EncryptedNonces.getOperatorNonces(aggregationProcess, keystore.getIndex()),
                                     NTRUEncryption.serialize(aggregationProcess.getIpfsFile().getPostqKey())
                             ), keystore.getIndex()
                     );
+                    ApplicationModel.getInstance().removeProcess(data.getId());
 
                 } catch (ChaincodeException e) {
                     System.err.println(e.getMessage());

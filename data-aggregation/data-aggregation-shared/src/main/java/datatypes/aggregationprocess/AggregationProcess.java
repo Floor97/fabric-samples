@@ -21,10 +21,14 @@ public class AggregationProcess {
     private final AggregationIPFSFile ipfsFile;
 
     @Property()
+    private final int nrExpectedParticipants;
+
+    @Property()
     private AggregationProcessState state = AggregationProcessState.SELECTING;
 
-    public AggregationProcess(String id, AggregationIPFSFile ipfsFile) {
+    public AggregationProcess(String id, int nrExpectedParticipants, AggregationIPFSFile ipfsFile) {
         this.id = id;
+        this.nrExpectedParticipants = nrExpectedParticipants;
         this.ipfsFile = ipfsFile;
     }
 
@@ -50,8 +54,9 @@ public class AggregationProcess {
 
         String id = json.getString("id");
         AggregationIPFSFile ipfsFile = IPFSConnection.getInstance().getAggregationIPFSFile(Multihash.fromHex(json.getString("hash")));
+        int nrExpectedParticipants = json.getInt("nrExpectedParticipants");
 
-        AggregationProcess aggregationProcess = new AggregationProcess(id, ipfsFile);
+        AggregationProcess aggregationProcess = new AggregationProcess(id, nrExpectedParticipants, ipfsFile);
         aggregationProcess.state = json.getEnum(AggregationProcessState.class, "state");
 
         return aggregationProcess;
@@ -66,6 +71,7 @@ public class AggregationProcess {
         JSONObject json = new JSONObject()
                 .put("id", this.id)
                 .put("hash", this.ipfsFile.getHash().toHex())
+                .put("nrExpectedParticipants", this.nrExpectedParticipants)
                 .put("state", this.state);
         return json.toString();
     }
@@ -74,6 +80,7 @@ public class AggregationProcess {
     public String toString() {
         return "id: " + this.id +
                 "process data: " + this.ipfsFile.toString() +
+                "nrExpectedParticipants: " + this.nrExpectedParticipants +
                 "state: " + this.state;
     }
 
@@ -83,6 +90,10 @@ public class AggregationProcess {
 
     public AggregationIPFSFile getIpfsFile() {
         return ipfsFile;
+    }
+
+    public boolean isExpectedParticipants() {
+        return this.nrExpectedParticipants <= this.ipfsFile.getNonces().size();
     }
 
     public boolean isSelecting() {

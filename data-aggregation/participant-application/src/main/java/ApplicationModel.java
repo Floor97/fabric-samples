@@ -7,12 +7,12 @@ public class ApplicationModel {
 
     private static ApplicationModel applicationModel = null;
 
-    private final HashMap<String, OperatorKeyStore> queryKeys;
+    private final HashMap<String, OperatorKeyStore> operatorKeys;
     private final HashSet<String> ids;
     private int operatorThreshold = 0;
 
     private ApplicationModel() {
-        queryKeys = new HashMap<>();
+        operatorKeys = new HashMap<>();
         ids = new HashSet<>();
     }
 
@@ -24,7 +24,7 @@ public class ApplicationModel {
      * @param keys the key the operator uses in this process.
      */
     public void addProcess(String id, OperatorKeyStore keys) {
-        queryKeys.put(id, keys);
+        operatorKeys.put(id, keys);
         ids.add(id);
     }
 
@@ -35,8 +35,12 @@ public class ApplicationModel {
      * @return true if the process was in the ids list, false otherwise.
      */
     public boolean removeProcess(String id) {
-        queryKeys.remove(id);
+        operatorKeys.remove(id);
         return ids.remove(id);
+    }
+
+    public boolean containsId(String id) {
+        return this.ids.contains(id);
     }
 
     public static ApplicationModel getInstance() {
@@ -45,7 +49,7 @@ public class ApplicationModel {
     }
 
     public OperatorKeyStore getKey(String id) {
-        return queryKeys.get(id);
+        return operatorKeys.get(id);
     }
 
     public int getOperatorThreshold() {

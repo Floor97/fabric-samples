@@ -40,7 +40,8 @@ public class DataQueryTransactions {
         contract.createTransaction("Start").setTransient(trans).submit(
                 id,
                 scanNextLine("Transaction Start selected\nNumber of Operators: "),
-                scanNextLine("Duration: ")
+                scanNextLine("Number of expected participants: "),
+                scanNextLine("Time Limit: ")
         );
         return new Pair<>(id, newKeys);
     }
