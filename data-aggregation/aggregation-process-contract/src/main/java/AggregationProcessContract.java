@@ -36,14 +36,15 @@ public class AggregationProcessContract implements ContractInterface {
      * or the StartAggregating event occurs when enough operators participated. Throws an exception
      * if the aggregation already exists but is not in the selection phase.
      *
-     * @param ctx         the transaction context.
-     * @param id          the unique id of the aggregation process.
-     * @param nrOperators the number of operators required for the aggregation process.
-     * @param ipfsHash    the unique hash from the data query ipfs file.
+     * @param ctx                    the transaction context.
+     * @param id                     the unique id of the aggregation process.
+     * @param nrOperators            the number of operators required for the aggregation process.
+     * @param nrExpectedParticipants the number of expected participants by the asker.
+     * @param ipfsHash               the unique hash from the data query ipfs file.
      * @throws IOException when the connection with IPFS cannot be made.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public int Start(Context ctx, String id, int nrOperators, String ipfsHash) throws IOException {
+    public int Start(Context ctx, String id, int nrOperators, int nrExpectedParticipants, String ipfsHash) throws IOException {
         ChaincodeStub stub = ctx.getStub();
         Map<String, byte[]> map = stub.getTransient();
         AggregationProcess aggregationProcess;
@@ -61,7 +62,7 @@ public class AggregationProcessContract implements ContractInterface {
                     new ArrayList<>()
             );
             aggIpfsFile.createHash();
-            aggregationProcess = new AggregationProcess(id, aggIpfsFile);
+            aggregationProcess = new AggregationProcess(id, nrExpectedParticipants, aggIpfsFile);
         }
 
         int index = aggregationProcess.getIpfsFile().addOperatorKey(NTRUEncryption.deserialize(map.get("operator")));
@@ -112,13 +113,20 @@ public class AggregationProcessContract implements ContractInterface {
         } else currentData.setData(newData.getData()).setExponent(newData.getExponent());
 
         aggregationProcess.getIpfsFile().addNonces(nonces);
-        stub.putStringState(id, aggregationProcess.serialize());
+
+        String serAggregationProcess;
+        if (aggregationProcess.isExpectedParticipants()) {
+            aggregationProcess.setClosed();
+            serAggregationProcess = aggregationProcess.serialize();
+            stub.setEvent("ParticipantsReached", serAggregationProcess.getBytes(StandardCharsets.UTF_8));
+        } else serAggregationProcess = aggregationProcess.serialize();
+
+        stub.putStringState(id, serAggregationProcess);
     }
 
     /**
      * Sets the state of the aggregation process corresponding to the given id to closed. Throws an
-     * exception if the process was already in the closed state, or when the given id does not
-     * correspond to a data aggregation process in the world state.
+     * exception when the given id does not correspond to a data aggregation process in the world state.
      *
      * @param ctx the transaction context.
      * @param id  the unique id of the aggregation process.
@@ -129,8 +137,6 @@ public class AggregationProcessContract implements ContractInterface {
         ChaincodeStub stub = retrieveStub(ctx, id);
 
         AggregationProcess aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
-        if (aggregationProcess.isClosed())
-            throw new ChaincodeException(String.format("Aggregation process %s is already closed", id));
 
         aggregationProcess.setClosed();
         String serAggregationProcess = aggregationProcess.serialize();

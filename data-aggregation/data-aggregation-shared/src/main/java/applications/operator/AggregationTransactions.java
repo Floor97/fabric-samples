@@ -26,15 +26,12 @@ public class AggregationTransactions extends ParticipantTransaction {
      * hash of the IPFS file used in the data query process are used as regular input.
      *
      * @param contractAgg the aggregation process contract.
+     * @param nrExpectedParticipants the number of expected participants by the asker.
      * @param dataQuery   the data query contract.
      * @return the new OperatorKeyStore the operator generated for the process.
-     * @throws ContractException    when an exception occurs in the aggregation process contract.
-     *                              An exception occurs when the aggregation process asset already exists but is not in
-     *                              selection phase.
      * @throws InterruptedException thrown by the submit method.
-     * @throws TimeoutException     thrown by the submit method.
      */
-    public static OperatorKeyStore start(Contract contractAgg, DataQuery dataQuery) throws ContractException, InterruptedException, TimeoutException, IOException {
+    public static OperatorKeyStore start(Contract contractAgg, int nrExpectedParticipants, DataQuery dataQuery) throws InterruptedException, IOException {
         OperatorKeyStore keystore = new OperatorKeyStore(NTRUEncryptionKeyGenerationParameters.APR2011_743_FAST);
         Map<String, byte[]> transientData = new HashMap<>();
 
@@ -42,6 +39,7 @@ public class AggregationTransactions extends ParticipantTransaction {
         byte[] index = repeat(contractAgg.createTransaction("Start").setTransient(transientData), new String[]{
                 dataQuery.getId(),
                 String.valueOf(dataQuery.getSettings().getNrOperators()),
+                String.valueOf(nrExpectedParticipants),
                 dataQuery.getIpfsFile().getHash().toHex()
         });
         if (Integer.parseInt(new String(index)) != -1) keystore.setIndex(Integer.parseInt(new String(index)));

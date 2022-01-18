@@ -31,6 +31,7 @@ public class DataQueryTransactions {
      */
     public static Pair<String, DataQueryKeyStore> start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         String nrOps = scanNextLine("Transaction Start selected\nNumber of Operators: ");
+        String nrExpectedPart = scanNextLine("Number of expected participants: ");
         String timeLimit = scanNextLine("Time limit: ");
         System.out.println("Begin Step 1: " + System.currentTimeMillis());
         String id = IdFactory.getInstance().createId();
@@ -43,6 +44,7 @@ public class DataQueryTransactions {
         contract.createTransaction("Start").setTransient(trans).submit(
                 id,
                 nrOps,
+                nrExpectedPart,
                 timeLimit
         );
         return new Pair<>(id, newKeys);
