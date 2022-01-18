@@ -5,6 +5,7 @@ import applications.operator.ParticipantTransaction;
 import datatypes.aggregationprocess.AggregationProcess;
 import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;
+import datatypes.values.EncryptedNonce;
 import datatypes.values.EncryptedNonces;
 import datatypes.values.Pair;
 import encryption.NTRUEncryption;
@@ -112,16 +113,19 @@ public class ApplicationController {
                 AggregationProcess aggregationProcess = AggregationProcess.deserialize(contractEvent.getPayload().get());
                 switch (contractEvent.getName()) {
                     case "StartAggregating":
+                        System.out.println("Begin Step 3: " + System.currentTimeMillis());
                         if (ApplicationModel.getInstance().getOperatorThreshold() > aggregationProcess.getIpfsFile().getOperatorKeys().length
                                 && ApplicationModel.getInstance().getKey(aggregationProcess.getId()) == null) return;
-                        System.out.println("StartAggregation");
+                        System.out.println("Begin Step 3: " + System.currentTimeMillis());
 
+                        System.out.println("Begin Step 4: " + System.currentTimeMillis());
+                        System.out.println("StartAggregation");
                         Pair<EncryptedData, EncryptedNonces> dataAndNonces = DataAndNonces.generateDataAndNonces(
                                 aggregationProcess.getIpfsFile().getPaillierKey(),
                                 Arrays.stream(aggregationProcess.getIpfsFile().getOperatorKeys()).map(NTRUEncryption::serialize).toArray(String[]::new)
                         );
                         AggregationTransactions.add(contractAgg, aggregationProcess.getId(), dataAndNonces.getP1(), dataAndNonces.getP2());
-
+                        System.out.println("End Step 4: " + System.currentTimeMillis());
                         break;
                     case "ParticipantsReached":
                         synchronized (ApplicationModel.getInstance()) {
@@ -129,16 +133,20 @@ public class ApplicationController {
                             System.out.println("ParticipantsReached");
                             OperatorKeyStore opKeystore = ApplicationModel.getInstance().getKey(aggregationProcess.getId());
                             if (opKeystore == null) return;
-
+                            System.out.println("Begin Step 6: " + System.currentTimeMillis());
+                            EncryptedNonce reEncryptedNonces = EncryptedNonces.condenseNonces(
+                                    opKeystore,
+                                    EncryptedNonces.getOperatorNonces(aggregationProcess, opKeystore.getIndex()),
+                                    NTRUEncryption.serialize(aggregationProcess.getIpfsFile().getPostqKey())
+                            );
+                            System.out.println("End Step 6: " + System.currentTimeMillis());
+                            System.out.println("Begin Step 7: " + System.currentTimeMillis());
                             applications.operator.DataQueryTransactions.add(contractQuery, aggregationProcess.getId(), aggregationProcess.getIpfsFile(),
-                                    EncryptedNonces.condenseNonces(
-                                            opKeystore,
-                                            EncryptedNonces.getOperatorNonces(aggregationProcess, opKeystore.getIndex()),
-                                            NTRUEncryption.serialize(aggregationProcess.getIpfsFile().getPostqKey())
-                                    ),
+                                    reEncryptedNonces,
                                     opKeystore.getIndex()
                             );
                             ApplicationModel.getInstance().removeProcess(aggregationProcess.getId());
+                            System.out.println("End Step 7: " + System.currentTimeMillis());
                             break;
                         }
                 }
@@ -169,14 +177,19 @@ public class ApplicationController {
 
                         AggregationProcess aggregationProcess = AggregationTransactions.close(contractAgg, data.getId());
 
+                        System.out.println("Begin Step 6: " + System.currentTimeMillis());
+                        EncryptedNonce reEncryptedNonces = EncryptedNonces.condenseNonces(
+                                keystore,
+                                EncryptedNonces.getOperatorNonces(aggregationProcess, keystore.getIndex()),
+                                NTRUEncryption.serialize(aggregationProcess.getIpfsFile().getPostqKey())
+                        );
+                        System.out.println("End Step 6: " + System.currentTimeMillis());
+                        System.out.println("Begin Step 7: " + System.currentTimeMillis());
                         applications.operator.DataQueryTransactions.add(contractQuery, aggregationProcess.getId(), aggregationProcess.getIpfsFile(),
-                                EncryptedNonces.condenseNonces(
-                                        keystore,
-                                        EncryptedNonces.getOperatorNonces(aggregationProcess, keystore.getIndex()),
-                                        NTRUEncryption.serialize(aggregationProcess.getIpfsFile().getPostqKey())
-                                ), keystore.getIndex()
+                                reEncryptedNonces, keystore.getIndex()
                         );
                         ApplicationModel.getInstance().removeProcess(data.getId());
+                        System.out.println("End Step 7: " + System.currentTimeMillis());
 
                     } catch (ChaincodeException e) {
                         System.err.println(e.getMessage());
