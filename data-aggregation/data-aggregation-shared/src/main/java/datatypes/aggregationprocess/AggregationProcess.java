@@ -21,11 +21,15 @@ public class AggregationProcess {
     private final AggregationIPFSFile ipfsFile;
 
     @Property()
+    private int nrOperatorsSelected;
+
+    @Property()
     private AggregationProcessState state = AggregationProcessState.SELECTING;
 
-    public AggregationProcess(String id, AggregationIPFSFile ipfsFile) {
+    public AggregationProcess(String id, AggregationIPFSFile ipfsFile, int nrOperatorsSelected) {
         this.id = id;
         this.ipfsFile = ipfsFile;
+        this.nrOperatorsSelected = nrOperatorsSelected;
     }
 
     public enum AggregationProcessState {
@@ -51,7 +55,7 @@ public class AggregationProcess {
         String id = json.getString("id");
         AggregationIPFSFile ipfsFile = IPFSConnection.getInstance().getAggregationIPFSFile(Multihash.fromHex(json.getString("hash")));
 
-        AggregationProcess aggregationProcess = new AggregationProcess(id, ipfsFile);
+        AggregationProcess aggregationProcess = new AggregationProcess(id, ipfsFile, json.getInt("nrOperatorsSelected"));
         aggregationProcess.state = json.getEnum(AggregationProcessState.class, "state");
 
         return aggregationProcess;
@@ -66,6 +70,7 @@ public class AggregationProcess {
         JSONObject json = new JSONObject()
                 .put("id", this.id)
                 .put("hash", this.ipfsFile.getHash().toHex())
+                .put("nrOperatorsSelected", this.nrOperatorsSelected)
                 .put("state", this.state);
         return json.toString();
     }
@@ -74,6 +79,7 @@ public class AggregationProcess {
     public String toString() {
         return "id: " + this.id +
                 "process data: " + this.ipfsFile.toString() +
+                "number of selected operators: " + this.nrOperatorsSelected +
                 "state: " + this.state;
     }
 
@@ -83,6 +89,14 @@ public class AggregationProcess {
 
     public AggregationIPFSFile getIpfsFile() {
         return ipfsFile;
+    }
+
+    public int getNrOperatorsSelected() {
+        return nrOperatorsSelected;
+    }
+
+    public void addOperator() {
+        this.nrOperatorsSelected++;
     }
 
     public boolean isSelecting() {

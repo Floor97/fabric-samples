@@ -1,29 +1,41 @@
 package applications.asker;
 
 
-import datatypes.values.EncryptedData;
-import datatypes.values.EncryptedNonce;
-import datatypes.values.EncryptedNonces;
 import datatypes.values.IPFSFile;
-import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 
 public class DataQueryIPFSFile extends IPFSFile {
 
-    private final EncryptedNonces nonces;
+    private final BigInteger[] nonces;
+    private int pointer = 0;
 
-    public DataQueryIPFSFile(String paillierKey, NTRUEncryptionPublicKeyParameters postqKey, EncryptedData data, EncryptedNonces nonces) {
-        super(paillierKey, postqKey, data);
+    public DataQueryIPFSFile(BigInteger data, BigInteger[] nonces) {
+        super(data);
         this.nonces = nonces;
+        setPointer();
     }
 
-    public EncryptedNonces getNonces() {
+    public BigInteger[] getNonces() {
         return nonces;
     }
 
-    public void addNonce(EncryptedNonce nonce) {
-        this.nonces.addNonce(nonce);
+    public void addNonce(BigInteger nonce) {
+        if (isFullNonces()) throw new RuntimeException("Nonces array is full!");
+        this.nonces[this.pointer++] = nonce;
+    }
+
+    private void setPointer() {
+        this.pointer = 0;
+        for (BigInteger nonce : nonces) {
+            if (nonce == null) break;
+            pointer++;
+        }
+    }
+
+    public boolean isFullNonces() {
+        return this.pointer >= this.nonces.length;
     }
 
     /**
@@ -36,9 +48,8 @@ public class DataQueryIPFSFile extends IPFSFile {
         StringBuilder builder = new StringBuilder(superStr);
 
         builder.append(";[");
-        EncryptedNonce[] nonces = this.nonces.getNonces();
         for (int i = 0; i < nonces.length; i++) {
-            builder.append(nonces[i] == null ? null : nonces[i].toString());
+            builder.append(nonces[i]);
             if (i != nonces.length - 1)
                 builder.append(",");
         }
@@ -56,10 +67,10 @@ public class DataQueryIPFSFile extends IPFSFile {
         String[] parts = file.split(";", 2);
         IPFSFile superfile = IPFSFile.deserialize(parts[0]);
 
-        EncryptedNonces nonces = new EncryptedNonces(Arrays.stream(
-                parts[1].substring(1, parts[1].length() - 1).split(",")
-        ).map(EncryptedNonce::deserialize).toArray(EncryptedNonce[]::new));
+        BigInteger[] nonces = Arrays.stream(
+                parts[1].substring(1, parts[1].length() - 1).split(","))
+                .map(str -> {if(str.equals("null"))return null; else return new BigInteger(str);}).toArray(BigInteger[]::new);
 
-        return new DataQueryIPFSFile(superfile.getPaillierKey(), superfile.getPostqKey(), superfile.getData(), nonces);
+        return new DataQueryIPFSFile(superfile.getData(), nonces);
     }
 }

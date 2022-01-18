@@ -1,13 +1,7 @@
-import applications.asker.DataQueryKeyStore;
 import applications.asker.DataQueryTransactions;
 import applications.asker.IdFactory;
 import applications.operator.ParticipantTransaction;
 import datatypes.dataquery.DataQuery;
-import datatypes.values.EncryptedData;
-import datatypes.values.EncryptedNonce;
-import datatypes.values.EncryptedNonces;
-import datatypes.values.Pair;
-import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractEvent;
 import org.hyperledger.fabric.gateway.ContractException;
@@ -40,8 +34,8 @@ public class ApplicationController {
             try {
                 switch (scan.next()) {
                     case "start":
-                        Pair<String, DataQueryKeyStore> storePair = DataQueryTransactions.start(contract);
-                        ApplicationModel.getInstance().addProcess(storePair.getP1(), storePair.getP2());
+                        String newId = DataQueryTransactions.start(contract);
+                        ApplicationModel.getInstance().addProcess(newId);
                         System.out.println("End Step 1: " + System.currentTimeMillis());
                         break;
                     case "close":
@@ -86,14 +80,11 @@ public class ApplicationController {
 
             try {
                 DataQuery dataQuery = DataQuery.deserialize(contractEvent.getPayload().get());
-                EncryptedData data = dataQuery.getIpfsFile().getData();
-                EncryptedNonces nonces = dataQuery.getIpfsFile().getNonces();
-                DataQueryKeyStore keystore = ApplicationModel.getInstance().getKey(dataQuery.getId());
+                BigInteger dataAndNonces = dataQuery.getIpfsFile().getData();
+                BigInteger[] nonces = dataQuery.getIpfsFile().getNonces();
 
-                BigInteger dataAndNonces = keystore.getPaillierEncryption().decrypt(data);
-                for (EncryptedNonce nonce : nonces.getNonces()) {
-                    byte[] decryptedNonce = keystore.getNtruEncryption().decrypt(nonce.getNonce());
-                    dataAndNonces = dataAndNonces.subtract(new BigInteger(new String(decryptedNonce)));
+                for (BigInteger nonce : nonces) {
+                    dataAndNonces = dataAndNonces.subtract(nonce);
                 }
 
                 System.out.println("Result of " + dataQuery.getId() + " is " + dataAndNonces.toString());
@@ -101,9 +92,6 @@ public class ApplicationController {
 
             } catch (IOException e) {
                 System.err.println("Could not deserialize data query asset!");
-                e.printStackTrace();
-            } catch (InvalidCipherTextException e) {
-                System.err.println("Could not decrypt nonces with NTRUEncrypt!");
                 e.printStackTrace();
             }
         };

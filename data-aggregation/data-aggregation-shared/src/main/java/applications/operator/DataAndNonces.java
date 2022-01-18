@@ -1,11 +1,6 @@
 package applications.operator;
 
-import datatypes.values.EncryptedData;
-import datatypes.values.EncryptedNonce;
-import datatypes.values.EncryptedNonces;
 import datatypes.values.Pair;
-import encryption.NTRUEncryption;
-import encryption.PaillierEncryption;
 import org.bouncycastler.crypto.InvalidCipherTextException;
 
 import java.io.File;
@@ -17,26 +12,23 @@ public class DataAndNonces {
 
     /**
      * Selects a random positive int for both the data and the nonces. Obfuscates
-     * the data with the generated nonces. Encrypts the obfuscated data with the
-     * Paillier encryption scheme and the nonces with the NTRUEncrypt scheme.
+     * the data with the generated nonces.
      *
-     * @param modulus        the modulus of the public key of the paillier public key.
-     * @param postQuantumPks the NTRUEncrypt public key.
-     * @return encrypted obfuscated data and a list of encrypted nonces.
-     * @throws InvalidCipherTextException thrown by the NTRUEncrypt encrypt method.
+     * @param nrOperators the number of operators in the process.
+     * @return obfuscated data and a list of nonces.
      */
-    public static Pair<EncryptedData, EncryptedNonces> generateDataAndNonces(String modulus, String[] postQuantumPks) throws InvalidCipherTextException {
+    public static Pair<BigInteger, BigInteger[]> generateDataAndNonces(int nrOperators) throws InvalidCipherTextException {
         BigInteger data = new BigInteger(DataAndNonces.getData());
         System.out.println("data: " + data);
-        EncryptedNonces nonces = new EncryptedNonces(new EncryptedNonce[postQuantumPks.length]);
-        for (String postQuantumPk : postQuantumPks) {
-            String nonce = String.valueOf(new Random().nextInt(Integer.MAX_VALUE));
-            data = data.add(new BigInteger(nonce));
+        BigInteger[] nonces = new BigInteger[nrOperators];
+        for(int i = 0; i < nrOperators; i++) {
+            BigInteger nonce = new BigInteger(String.valueOf(new Random().nextInt(Integer.MAX_VALUE)));
+            data = data.add(nonce);
             System.out.println("nonce: " + nonce);
 
-            nonces.addNonce(new EncryptedNonce(NTRUEncryption.encrypt(nonce.getBytes(), postQuantumPk)));
+            nonces[i] = nonce;
         }
-        return new Pair<>(PaillierEncryption.encrypt(data, modulus), nonces);
+        return new Pair<>(data, nonces);
     }
 
     /**

@@ -1,15 +1,8 @@
 import applications.asker.DataQueryIPFSFile;
 import applications.operator.AggregationIPFSFile;
-import com.n1analytics.paillier.EncryptedNumber;
-import com.n1analytics.paillier.PaillierContext;
-import com.n1analytics.paillier.PaillierPublicKey;
 import datatypes.aggregationprocess.AggregationProcess;
-import datatypes.values.EncryptedData;
-import datatypes.values.EncryptedNonces;
 import datatypes.values.IPFSConnection;
-import encryption.NTRUEncryption;
 import io.ipfs.multihash.Multihash;
-import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
@@ -22,6 +15,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 
 @Default
@@ -45,36 +39,31 @@ public class AggregationProcessContract implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public int Start(Context ctx, String id, int nrOperators, String ipfsHash) throws IOException {
         ChaincodeStub stub = ctx.getStub();
-        Map<String, byte[]> map = stub.getTransient();
         AggregationProcess aggregationProcess;
         if (Exists(ctx, id)) {
             aggregationProcess = AggregationProcess.deserialize(stub.getState(id));
-            if ((!aggregationProcess.isSelecting()) || aggregationProcess.getIpfsFile().isOperatorKeysFull())
+            if ((!aggregationProcess.isSelecting()) || aggregationProcess.getNrOperatorsSelected() >= nrOperators)
                 return -1;
         } else {
             DataQueryIPFSFile dataIpfsFile = IPFSConnection.getInstance().getDataQueryIPFSFile(Multihash.fromHex(ipfsHash));
             AggregationIPFSFile aggIpfsFile = new AggregationIPFSFile(
-                    dataIpfsFile.getPaillierKey(),
-                    dataIpfsFile.getPostqKey(),
-                    new EncryptedData(null, null),
-                    new NTRUEncryptionPublicKeyParameters[nrOperators],
+                    new BigInteger("0"),
                     new ArrayList<>()
             );
             aggIpfsFile.createHash();
-            aggregationProcess = new AggregationProcess(id, aggIpfsFile);
+            aggregationProcess = new AggregationProcess(id, aggIpfsFile, 0);
         }
 
-        int index = aggregationProcess.getIpfsFile().addOperatorKey(NTRUEncryption.deserialize(map.get("operator")));
-
+        aggregationProcess.addOperator();
         String serAggregationProcess;
-        if (aggregationProcess.getIpfsFile().isOperatorKeysFull()) {
+        if (aggregationProcess.getNrOperatorsSelected() == nrOperators) {
             aggregationProcess.setAggregating();
             serAggregationProcess = aggregationProcess.serialize();
             stub.setEvent("StartAggregating", serAggregationProcess.getBytes(StandardCharsets.UTF_8));
         } else serAggregationProcess = aggregationProcess.serialize();
 
         stub.putStringState(id, serAggregationProcess);
-        return index;
+        return aggregationProcess.getNrOperatorsSelected() - 1;
     }
 
     /**
@@ -95,21 +84,14 @@ public class AggregationProcessContract implements ContractInterface {
         if (!aggregationProcess.isAggregating()) throw new ChaincodeException("Process is not in aggregating phase");
 
         Map<String, byte[]> map = stub.getTransient();
-        EncryptedData newData = EncryptedData.deserialize(map.get("data"));
-        EncryptedData currentData = aggregationProcess.getIpfsFile().getData();
-        EncryptedNonces nonces = EncryptedNonces.deserialize(map.get("nonces"));
+        BigInteger newData = new BigInteger(new String(map.get("data")));
+        BigInteger currentData = aggregationProcess.getIpfsFile().getData();
+        String serNonces = new String(map.get("nonces"));
+        BigInteger[] nonces = Arrays.stream(serNonces.substring(1, serNonces.length() - 1).split(",")).map(BigInteger::new).toArray(BigInteger[]::new);
 
-        if (!currentData.getData().equals("null")) {
-            PaillierPublicKey pk = new PaillierPublicKey(new BigInteger(aggregationProcess.getIpfsFile().getPaillierKey()));
-            PaillierContext pctx = pk.createSignedContext();
-            EncryptedNumber encCurrentData = new EncryptedNumber(pctx, new BigInteger(currentData.getData()),
-                    Integer.parseInt(currentData.getExponent()), true);
-            EncryptedNumber encNewData = new EncryptedNumber(pctx, new BigInteger(newData.getData()),
-                    Integer.parseInt(newData.getExponent()), true);
-
-            encCurrentData = encCurrentData.add(encNewData);
-            currentData.setData(encCurrentData.calculateCiphertext().toString()).setExponent(String.valueOf(encCurrentData.getExponent()));
-        } else currentData.setData(newData.getData()).setExponent(newData.getExponent());
+        if (!currentData.toString().equals("0"))
+            aggregationProcess.getIpfsFile().setData(currentData.add(newData));
+        else aggregationProcess.getIpfsFile().setData(newData);
 
         aggregationProcess.getIpfsFile().addNonces(nonces);
         stub.putStringState(id, aggregationProcess.serialize());

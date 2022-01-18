@@ -1,9 +1,9 @@
 package applications.operator;
 
-import datatypes.values.EncryptedNonce;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,12 +25,12 @@ public class DataQueryTransactions extends ParticipantTransaction {
      * @param index           the index the operator has in the KeyStore.
      * @throws InterruptedException thrown by the submit method.
      */
-    public static void addOperator(Contract contract, String name, String id, AggregationIPFSFile file, EncryptedNonce condensedNonces, int index)
+    public static void addOperator(Contract contract, String name, String id, AggregationIPFSFile file, BigInteger condensedNonces, int index)
             throws InterruptedException {
 
         Map<String, byte[]> trans = new HashMap<>();
-        trans.put("data", file.getData().serialize().getBytes(StandardCharsets.UTF_8));
-        trans.put("nonces", condensedNonces.serialize().getBytes(StandardCharsets.UTF_8));
+        trans.put("data", file.getData().toString().getBytes(StandardCharsets.UTF_8));
+        trans.put("nonces", condensedNonces.toString().getBytes(StandardCharsets.UTF_8));
         repeat(contract.createTransaction(name).setTransient(trans), new String[]{
                 id,
                 String.valueOf(file.getNonces().size()),

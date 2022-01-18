@@ -1,64 +1,29 @@
 package applications.operator;
 
-import datatypes.values.EncryptedData;
-import datatypes.values.EncryptedNonce;
-import datatypes.values.EncryptedNonces;
 import datatypes.values.IPFSFile;
-import encryption.NTRUEncryption;
 import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 
-import java.io.IOException;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
 public class AggregationIPFSFile extends IPFSFile {
 
-    private final NTRUEncryptionPublicKeyParameters[] operatorKeys;
-    private final ArrayList<EncryptedNonces> nonces;
+    private final ArrayList<BigInteger[]> nonces;
 
-    public AggregationIPFSFile(String paillierKey, NTRUEncryptionPublicKeyParameters postqKey, EncryptedData data, NTRUEncryptionPublicKeyParameters[] operatorKeys, ArrayList<EncryptedNonces> nonces) {
-        super(paillierKey, postqKey, data);
-        this.operatorKeys = operatorKeys;
+    public AggregationIPFSFile(BigInteger data, ArrayList<BigInteger[]> nonces) {
+        super(data);
         this.nonces = nonces;
     }
 
     /**
-     * An EncryptedNonces is added to the nonces ArrayList.
+     * A nonce is added to the nonces ArrayList.
      *
-     * @param newNonces the EncryptedNonces object.
+     * @param nonce the EncryptedNonces object.
      */
-    public void addNonces(EncryptedNonces newNonces) throws IOException {
-        this.nonces.add(newNonces);
-    }
-
-    /**
-     * A new public key is added to the operatorKeys array.
-     *
-     * @param newKey the public key used for NTRUEncrypt.
-     * @return the index at which the key was inserted. -1 if the array is full.
-     * @throws IOException thrown if an IOException occurs adding a file to the IPFS network.
-     */
-    public int addOperatorKey(NTRUEncryptionPublicKeyParameters newKey) throws IOException {
-        for (int i = 0; i < operatorKeys.length; i++) {
-            if (this.operatorKeys[i] == null) {
-                if (newKey != null) {
-                    this.operatorKeys[i] = newKey;
-                }
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * Checks if the operatorKeys array is full.
-     *
-     * @return true if the array is full, otherwise false.
-     * @throws IOException thrown if an IOException occurs adding a file to the IPFS network.
-     */
-    public boolean isOperatorKeysFull() throws IOException {
-        return addOperatorKey(null) == -1;
+    public void addNonces(BigInteger[] nonce) {
+        this.nonces.add(nonce);
     }
 
     /**
@@ -73,20 +38,15 @@ public class AggregationIPFSFile extends IPFSFile {
 
         String[] parts = superParts[1].split("\n", 2);
 
-        String[] strOpkeys = parts[1].substring(1, parts[1].length() - 1).split(",");
-        NTRUEncryptionPublicKeyParameters[] opKeys = Arrays.stream(strOpkeys)
-                .map(NTRUEncryption::deserialize)
-                .toArray(NTRUEncryptionPublicKeyParameters[]::new);
-
-        ArrayList<EncryptedNonces> nonces = new ArrayList<>();
+        ArrayList<BigInteger[]> nonces = new ArrayList<>();
 
         if (!parts[0].equals("[]")) {
             String[] noncesParts = parts[0].substring(2, parts[0].length() - 2).split("],\\[");
             for (String nonce : noncesParts)
-                nonces.add(new EncryptedNonces(Arrays.stream(nonce.split(",", opKeys.length)).map(EncryptedNonce::deserialize).toArray(EncryptedNonce[]::new)));
+                nonces.add(Arrays.stream(nonce.split(",")).map(BigInteger::new).toArray(BigInteger[]::new));
         }
 
-        return new AggregationIPFSFile(superfile.getPaillierKey(), superfile.getPostqKey(), superfile.getData(), opKeys, nonces);
+        return new AggregationIPFSFile(superfile.getData(), nonces);
     }
 
     /**
@@ -101,26 +61,18 @@ public class AggregationIPFSFile extends IPFSFile {
         builder.append(";[");
         for (int i = 0; i < this.nonces.size(); i++) {
             builder.append("[")
-                    .append(Arrays.stream(this.nonces.get(i).getNonces())
-                            .map(EncryptedNonce::toString)
+                    .append(Arrays.stream(this.nonces.get(i))
+                            .map(BigInteger::toString)
                             .collect(Collectors.joining(",")))
                     .append("]");
             if (i != this.nonces.size() - 1)
                 builder.append(",");
         }
-        builder.append("]\n[")
-                .append(Arrays.stream(this.operatorKeys)
-                        .map(NTRUEncryption::serialize)
-                        .collect(Collectors.joining(",")))
-                .append("]");
+        builder.append("]");
         return builder.toString();
     }
 
-    public ArrayList<EncryptedNonces> getNonces() {
+    public ArrayList<BigInteger[]> getNonces() {
         return nonces;
-    }
-
-    public NTRUEncryptionPublicKeyParameters[] getOperatorKeys() {
-        return operatorKeys;
     }
 }

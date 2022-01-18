@@ -2,19 +2,18 @@ package applications.operator;
 
 import datatypes.aggregationprocess.AggregationProcess;
 import datatypes.dataquery.DataQuery;
-import datatypes.values.EncryptedData;
-import datatypes.values.EncryptedNonces;
-import encryption.NTRUEncryption;
-import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyGenerationParameters;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 public class AggregationTransactions extends ParticipantTransaction {
 
@@ -27,26 +26,20 @@ public class AggregationTransactions extends ParticipantTransaction {
      *
      * @param contractAgg the aggregation process contract.
      * @param dataQuery   the data query contract.
-     * @return the new OperatorKeyStore the operator generated for the process.
+     * @return the index of the operator.
      * @throws ContractException    when an exception occurs in the aggregation process contract.
      *                              An exception occurs when the aggregation process asset already exists but is not in
      *                              selection phase.
      * @throws InterruptedException thrown by the submit method.
      * @throws TimeoutException     thrown by the submit method.
      */
-    public static OperatorKeyStore start(Contract contractAgg, DataQuery dataQuery) throws ContractException, InterruptedException, TimeoutException, IOException {
-        OperatorKeyStore keystore = new OperatorKeyStore(NTRUEncryptionKeyGenerationParameters.APR2011_743_FAST);
-        Map<String, byte[]> transientData = new HashMap<>();
-
-        transientData.put("operator", NTRUEncryption.serialize(keystore.getNtruEncryption().getPublic()).getBytes(StandardCharsets.UTF_8));
-        byte[] index = repeat(contractAgg.createTransaction("Start").setTransient(transientData), new String[]{
+    public static int start(Contract contractAgg, DataQuery dataQuery) throws ContractException, InterruptedException, TimeoutException, IOException {
+        byte[] index = repeat(contractAgg.createTransaction("Start"), new String[]{
                 dataQuery.getId(),
                 String.valueOf(dataQuery.getSettings().getNrOperators()),
                 dataQuery.getIpfsFile().getHash().toHex()
         });
-        if (Integer.parseInt(new String(index)) != -1) keystore.setIndex(Integer.parseInt(new String(index)));
-
-        return keystore;
+        return Integer.parseInt(new String(index));
     }
 
     /**
@@ -65,10 +58,14 @@ public class AggregationTransactions extends ParticipantTransaction {
      * @throws InterruptedException thrown by the submit method.
      * @throws TimeoutException     thrown by the submit method.
      */
-    public static void add(Contract contract, String id, EncryptedData data, EncryptedNonces nonces) throws ContractException, InterruptedException, TimeoutException {
+    public static void add(Contract contract, String id, BigInteger data, BigInteger[] nonces) throws ContractException, InterruptedException, TimeoutException {
         Map<String, byte[]> transientData = new HashMap<>();
-        transientData.put("data", data.serialize().getBytes(StandardCharsets.UTF_8));
-        transientData.put("nonces", EncryptedNonces.serialize(nonces).getBytes(StandardCharsets.UTF_8));
+        StringBuilder builder = new StringBuilder();
+        builder.append("[")
+                .append(Arrays.stream(nonces).map(BigInteger::toString).collect(Collectors.joining(",")))
+                .append("]");
+        transientData.put("data", data.toString().getBytes(StandardCharsets.UTF_8));
+        transientData.put("nonces", builder.toString().getBytes(StandardCharsets.UTF_8));
 
         repeat(contract.createTransaction("Add").setTransient(transientData), new String[]{id});
     }

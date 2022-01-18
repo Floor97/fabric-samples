@@ -1,5 +1,3 @@
-import applications.operator.OperatorKeyStore;
-
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -7,12 +5,12 @@ public class ApplicationModel {
 
     private static ApplicationModel applicationModel = null;
 
-    private final HashMap<String, OperatorKeyStore> queryKeys;
+    private final HashMap<String, Integer> operatorIndex;
     private final HashSet<String> ids;
     private int operatorThreshold = 0;
 
     private ApplicationModel() {
-        queryKeys = new HashMap<>();
+        operatorIndex = new HashMap<>();
         ids = new HashSet<>();
     }
 
@@ -20,11 +18,11 @@ public class ApplicationModel {
      * Adds the id to the list of ids that the application is keeping track of. Also adds the
      * key used by the operator for this process.
      *
-     * @param id   the unique id of the process.
-     * @param keys the key the operator uses in this process.
+     * @param id    the unique id of the process.
+     * @param index the index the operator uses in this process.
      */
-    public void addProcess(String id, OperatorKeyStore keys) {
-        queryKeys.put(id, keys);
+    public void addProcess(String id, int index) {
+        operatorIndex.put(id, index);
         ids.add(id);
     }
 
@@ -35,7 +33,7 @@ public class ApplicationModel {
      * @return true if the process was in the ids list, false otherwise.
      */
     public boolean removeProcess(String id) {
-        queryKeys.remove(id);
+        operatorIndex.remove(id);
         return ids.remove(id);
     }
 
@@ -44,8 +42,8 @@ public class ApplicationModel {
         return applicationModel;
     }
 
-    public OperatorKeyStore getKey(String id) {
-        return queryKeys.get(id);
+    public Integer getIndex(String id) {
+        return operatorIndex.get(id);
     }
 
     public int getOperatorThreshold() {

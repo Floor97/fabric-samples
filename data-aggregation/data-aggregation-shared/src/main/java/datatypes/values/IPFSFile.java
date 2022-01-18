@@ -1,27 +1,17 @@
 package datatypes.values;
 
-import encryption.NTRUEncryption;
 import io.ipfs.multihash.Multihash;
-import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionPublicKeyParameters;
 
 import java.io.IOException;
+import java.math.BigInteger;
 
 
 public class IPFSFile {
 
     private Multihash hash;
-    private EncryptedData data;
-    private final String paillierKey;
-    private final NTRUEncryptionPublicKeyParameters postqKey;
+    private BigInteger data;
 
-    public IPFSFile(String paillierKey, NTRUEncryptionPublicKeyParameters postqKey) {
-        this.paillierKey = paillierKey;
-        this.postqKey = postqKey;
-    }
-
-    public IPFSFile(String paillierKey, NTRUEncryptionPublicKeyParameters postqKey, EncryptedData data) {
-        this.paillierKey = paillierKey;
-        this.postqKey = postqKey;
+    public IPFSFile(BigInteger data) {
         this.data = data;
     }
 
@@ -41,9 +31,7 @@ public class IPFSFile {
      * @return the IPFSFile.
      */
     public static IPFSFile deserialize(String file) {
-        String[] parts = file.split("\n", 3);
-        return new IPFSFile(parts[0], NTRUEncryption.deserialize(parts[1]))
-                .setData(EncryptedData.deserialize(parts[2]));
+        return new IPFSFile(new BigInteger(file));
     }
 
     /**
@@ -52,24 +40,14 @@ public class IPFSFile {
      * @return the serialized IPFSFile object.
      */
     public String serialize() {
-        return this.paillierKey + "\n" +
-                NTRUEncryption.serialize(this.postqKey) + "\n" +
-                data.serialize();
+        return data.toString();
     }
 
-    public String getPaillierKey() {
-        return paillierKey;
-    }
-
-    public NTRUEncryptionPublicKeyParameters getPostqKey() {
-        return postqKey;
-    }
-
-    public EncryptedData getData() {
+    public BigInteger getData() {
         return data;
     }
 
-    public IPFSFile setData(EncryptedData data) {
+    public IPFSFile setData(BigInteger data) {
         this.data = data;
         return this;
     }

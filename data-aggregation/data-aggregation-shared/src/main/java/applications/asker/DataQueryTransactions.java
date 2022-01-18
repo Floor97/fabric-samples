@@ -1,16 +1,11 @@
 package applications.asker;
 
 import datatypes.dataquery.DataQuery;
-import datatypes.values.Pair;
-import encryption.NTRUEncryption;
-import org.bouncycastler.pqc.crypto.ntru.NTRUEncryptionKeyGenerationParameters;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
@@ -29,23 +24,18 @@ public class DataQueryTransactions {
      * @throws InterruptedException thrown by the submit method.
      * @throws TimeoutException     thrown by the submit method.
      */
-    public static Pair<String, DataQueryKeyStore> start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
+    public static String start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         String nrOps = scanNextLine("Transaction Start selected\nNumber of Operators: ");
         String timeLimit = scanNextLine("Time limit: ");
         System.out.println("Begin Step 1: " + System.currentTimeMillis());
         String id = IdFactory.getInstance().createId();
-        DataQueryKeyStore newKeys = new DataQueryKeyStore(NTRUEncryptionKeyGenerationParameters.APR2011_743_FAST, 4096);
 
-        Map<String, byte[]> trans = new HashMap<>();
-        trans.put("paillier", newKeys.getPaillierEncryption().serialize().getBytes(StandardCharsets.UTF_8));
-        trans.put("post-quantum", NTRUEncryption.serialize(newKeys.getNtruEncryption().getPublic()).getBytes(StandardCharsets.UTF_8));
-
-        contract.createTransaction("Start").setTransient(trans).submit(
+        contract.createTransaction("Start").submit(
                 id,
                 nrOps,
                 timeLimit
         );
-        return new Pair<>(id, newKeys);
+        return id;
     }
 
     /**

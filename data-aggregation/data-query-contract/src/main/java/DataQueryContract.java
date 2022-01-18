@@ -1,10 +1,6 @@
 import applications.asker.DataQueryIPFSFile;
 import datatypes.dataquery.DataQuery;
 import datatypes.dataquery.DataQuerySettings;
-import datatypes.values.EncryptedData;
-import datatypes.values.EncryptedNonce;
-import datatypes.values.EncryptedNonces;
-import encryption.NTRUEncryption;
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contract;
@@ -14,6 +10,7 @@ import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
@@ -36,16 +33,13 @@ public class DataQueryContract implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void Start(Context ctx, String id, int nrOperators, long duration) throws IOException {
         ChaincodeStub stub = ctx.getStub();
-        Map<String, byte[]> trans = stub.getTransient();
 
         if (Exists(ctx, id))
             throw new ChaincodeException(String.format("Data query, %s, already exists", id));
 
         DataQueryIPFSFile ipfsFile = new DataQueryIPFSFile(
-                new String(trans.get("paillier")),
-                NTRUEncryption.deserialize(trans.get("post-quantum")),
-                new EncryptedData("null", "null"),
-                new EncryptedNonces(new EncryptedNonce[nrOperators]));
+                new BigInteger("0"),
+                new BigInteger[nrOperators]);
         ipfsFile.createHash();
         DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, duration), ipfsFile, -1);
         String serDataQuery = dataQuery.serialize();
@@ -73,14 +67,14 @@ public class DataQueryContract implements ContractInterface {
             throw new ChaincodeException(String.format("Data query, %s, is not waiting", id));
 
         DataQueryIPFSFile ipfsFile = dataQuery.getIpfsFile();
-        EncryptedData encData = EncryptedData.deserialize(new String(trans.get("data")));
+        BigInteger encData = new BigInteger(new String(trans.get("data")));
 
         dataQuery.getIpfsFile().setData(encData);
         dataQuery.setNrParticipants(nrParticipants);
-        ipfsFile.getNonces().addNonce(EncryptedNonce.deserialize(new String(trans.get("nonces"))));
+        ipfsFile.addNonce(new BigInteger(new String(trans.get("nonces"))));
 
         String serDataQuery;
-        if (ipfsFile.getNonces().isFull()) {
+        if (ipfsFile.isFullNonces()) {
             dataQuery.setDone();
             serDataQuery = dataQuery.serialize();
             stub.setEvent("DoneQuery", serDataQuery.getBytes(StandardCharsets.UTF_8));
@@ -115,16 +109,15 @@ public class DataQueryContract implements ContractInterface {
             throw new ChaincodeException(String.format("Data query, %s, is not waiting", id));
 
         DataQueryIPFSFile ipfsFile = dataQuery.getIpfsFile();
-        EncryptedData encData = EncryptedData.deserialize(new String(trans.get("data")));
+        BigInteger encData = new BigInteger(new String(trans.get("data")));
 
-        if (!ipfsFile.getData().getData().equals(encData.getData())
-                || !ipfsFile.getData().getExponent().equals(encData.getExponent())
+        if (!ipfsFile.getData().toString().equals(encData.toString())
                 || dataQuery.getNrParticipants() != nrParticipants)
             dataQuery.setIncFlag();
-        ipfsFile.getNonces().addNonce(EncryptedNonce.deserialize(new String(trans.get("nonces"))));
+        ipfsFile.addNonce(new BigInteger(new String(trans.get("nonces"))));
 
         String serDataQuery;
-        if (ipfsFile.getNonces().isFull()) {
+        if (ipfsFile.isFullNonces()) {
             dataQuery.setDone();
             serDataQuery = dataQuery.serialize();
             stub.setEvent("DoneQuery", serDataQuery.getBytes(StandardCharsets.UTF_8));
