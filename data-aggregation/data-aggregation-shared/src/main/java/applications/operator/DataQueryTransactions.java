@@ -18,20 +18,19 @@ public class DataQueryTransactions extends ParticipantTransaction {
      * and index is used as regular input.
      *
      * @param contract        the data query contract.
-     * @param name            the name of the Transaction, either AddOperatorZero or AddOperatorN
      * @param id              the id of the data aggregation asset.
      * @param file            the IPFS file used in the aggregation process.
      * @param condensedNonces nonces encrypted with NTRUEncrypt.
      * @param index           the index the operator has in the KeyStore.
      * @throws InterruptedException thrown by the submit method.
      */
-    public static void addOperator(Contract contract, String name, String id, AggregationIPFSFile file, EncryptedNonce condensedNonces, int index)
+    public static void add(Contract contract, String id, AggregationIPFSFile file, EncryptedNonce condensedNonces, int index)
             throws InterruptedException {
 
         Map<String, byte[]> trans = new HashMap<>();
         trans.put("data", file.getData().serialize().getBytes(StandardCharsets.UTF_8));
         trans.put("nonces", condensedNonces.serialize().getBytes(StandardCharsets.UTF_8));
-        repeat(contract.createTransaction(name).setTransient(trans), new String[]{
+        repeat(contract.createTransaction("Add").setTransient(trans), new String[]{
                 id,
                 String.valueOf(file.getNonces().size()),
                 String.valueOf(index)

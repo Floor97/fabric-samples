@@ -63,10 +63,11 @@ public class DataQuery {
         int nrOperators = json.getInt("nrOperators");
         long endTime = json.getLong("duration");
         int nrParticipants = json.getInt("nrParticipants");
+        int nrExpectedParticipants = json.getInt("nrExpectedParticipants");
         boolean incFlag = json.getBoolean("incFlag");
         DataQueryIPFSFile file = IPFSConnection.getInstance().getDataQueryIPFSFile(Multihash.fromHex(json.getString("hash")));
 
-        DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, endTime), file, nrParticipants);
+        DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, nrExpectedParticipants, endTime), file, nrParticipants);
 
         if (incFlag) dataQuery.setIncFlag();
         dataQuery.state = json.getEnum(DataQueryState.class, "state");
@@ -85,6 +86,7 @@ public class DataQuery {
                 .put("nrOperators", this.getSettings().getNrOperators())
                 .put("duration", this.getSettings().getDuration())
                 .put("nrParticipants", this.nrParticipants)
+                .put("nrExpectedParticipants", this.getSettings().getNrExpectedParticipants())
                 .put("state", this.state)
                 .put("incFlag", this.incFlag)
                 .put("hash", this.ipfsFile.getHash().toHex());

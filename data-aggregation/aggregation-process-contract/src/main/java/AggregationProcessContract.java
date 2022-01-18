@@ -36,14 +36,15 @@ public class AggregationProcessContract implements ContractInterface {
      * or the StartAggregating event occurs when enough operators participated. Throws an exception
      * if the aggregation already exists but is not in the selection phase.
      *
-     * @param ctx         the transaction context.
-     * @param id          the unique id of the aggregation process.
-     * @param nrOperators the number of operators required for the aggregation process.
-     * @param ipfsHash    the unique hash from the data query ipfs file.
+     * @param ctx                    the transaction context.
+     * @param id                     the unique id of the aggregation process.
+     * @param nrOperators            the number of operators required for the aggregation process.
+     * @param nrExpectedParticipants the number of expected participants by the asker.
+     * @param ipfsHash               the unique hash from the data query ipfs file.
      * @throws IOException when the connection with IPFS cannot be made.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public int Start(Context ctx, String id, int nrOperators, String ipfsHash) throws IOException {
+    public int Start(Context ctx, String id, int nrExpectedParticipants, int nrOperators, String ipfsHash) throws IOException {
         ChaincodeStub stub = ctx.getStub();
         Map<String, byte[]> map = stub.getTransient();
         AggregationProcess aggregationProcess;
@@ -61,7 +62,7 @@ public class AggregationProcessContract implements ContractInterface {
                     new ArrayList<>()
             );
             aggIpfsFile.createHash();
-            aggregationProcess = new AggregationProcess(id, aggIpfsFile);
+            aggregationProcess = new AggregationProcess(id, nrExpectedParticipants, aggIpfsFile);
         }
 
         int index = aggregationProcess.getIpfsFile().addOperatorKey(NTRUEncryption.deserialize(map.get("operator")));
@@ -112,7 +113,11 @@ public class AggregationProcessContract implements ContractInterface {
         } else currentData.setData(newData.getData()).setExponent(newData.getExponent());
 
         aggregationProcess.getIpfsFile().addNonces(nonces);
-        stub.putStringState(id, aggregationProcess.serialize());
+
+        String serAggregationProcess = aggregationProcess.serialize();
+        if (aggregationProcess.isExpectedParticipants())
+            stub.setEvent("ParticipantsReached", serAggregationProcess.getBytes(StandardCharsets.UTF_8));
+        stub.putStringState(id, serAggregationProcess);
     }
 
     /**
