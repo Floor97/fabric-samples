@@ -1,5 +1,7 @@
-import applications.asker.DataQueryTransactions;
-import applications.operator.*;
+import applications.operator.AggregationTransactions;
+import applications.operator.DataAndNonces;
+import applications.operator.OperatorKeyStore;
+import applications.operator.ParticipantTransaction;
 import datatypes.aggregationprocess.AggregationProcess;
 import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;
@@ -77,9 +79,8 @@ public class ApplicationController {
                     case "StartQuery":
                         System.out.println("StartQuery");
                         OperatorKeyStore keystore = AggregationTransactions.start(contractAgg, data.getSettings().getNrExpectedParticipants(), data);
-                        if (keystore.getIndex() != -1)
-                            ApplicationModel.getInstance().addProcess(data.getId(), keystore);
-                        if (keystore.getIndex() != 0) return;
+                        if (keystore.getIndex() == -1) return;
+                        ApplicationModel.getInstance().addProcess(data.getId(), keystore);
 
                         ApplicationController.ruleTimeLimit(contractQuery, contractAgg, data, keystore);
                         break;
@@ -121,20 +122,23 @@ public class ApplicationController {
 
                         break;
                     case "ParticipantsReached":
-                        System.out.println("ParticipantsReached");
-                        OperatorKeyStore opKeystore = ApplicationModel.getInstance().getKey(aggregationProcess.getId());
-                        if (opKeystore == null) return;
+                        synchronized (ApplicationModel.getInstance()) {
 
-                        applications.operator.DataQueryTransactions.add(contractQuery, aggregationProcess.getId(), aggregationProcess.getIpfsFile(),
-                                EncryptedNonces.condenseNonces(
-                                        opKeystore,
-                                        EncryptedNonces.getOperatorNonces(aggregationProcess, opKeystore.getIndex()),
-                                        NTRUEncryption.serialize(aggregationProcess.getIpfsFile().getPostqKey())
-                                ),
-                                opKeystore.getIndex()
-                        );
-                        ApplicationModel.getInstance().removeProcess(aggregationProcess.getId());
-                        break;
+                            System.out.println("ParticipantsReached");
+                            OperatorKeyStore opKeystore = ApplicationModel.getInstance().getKey(aggregationProcess.getId());
+                            if (opKeystore == null) return;
+
+                            applications.operator.DataQueryTransactions.add(contractQuery, aggregationProcess.getId(), aggregationProcess.getIpfsFile(),
+                                    EncryptedNonces.condenseNonces(
+                                            opKeystore,
+                                            EncryptedNonces.getOperatorNonces(aggregationProcess, opKeystore.getIndex()),
+                                            NTRUEncryption.serialize(aggregationProcess.getIpfsFile().getPostqKey())
+                                    ),
+                                    opKeystore.getIndex()
+                            );
+                            ApplicationModel.getInstance().removeProcess(aggregationProcess.getId());
+                            break;
+                        }
                 }
             } catch (ChaincodeException e) {
                 System.err.println(e.getMessage());
@@ -157,24 +161,26 @@ public class ApplicationController {
     private static void ruleTimeLimit(Contract contractQuery, Contract contractAgg, DataQuery data, OperatorKeyStore keystore) {
         TimerTask action = new TimerTask() {
             public void run() {
-                try {
-                    if (!ApplicationModel.getInstance().containsId(data.getId())) return;
+                synchronized (ApplicationModel.getInstance()) {
+                    try {
+                        if (!ApplicationModel.getInstance().containsId(data.getId())) return;
 
-                    AggregationProcess aggregationProcess = AggregationTransactions.close(contractAgg, data.getId());
+                        AggregationProcess aggregationProcess = AggregationTransactions.close(contractAgg, data.getId());
 
-                    applications.operator.DataQueryTransactions.add(contractQuery, aggregationProcess.getId(), aggregationProcess.getIpfsFile(),
-                            EncryptedNonces.condenseNonces(
-                                    keystore,
-                                    EncryptedNonces.getOperatorNonces(aggregationProcess, keystore.getIndex()),
-                                    NTRUEncryption.serialize(aggregationProcess.getIpfsFile().getPostqKey())
-                            ), keystore.getIndex()
-                    );
-                    ApplicationModel.getInstance().removeProcess(data.getId());
+                        applications.operator.DataQueryTransactions.add(contractQuery, aggregationProcess.getId(), aggregationProcess.getIpfsFile(),
+                                EncryptedNonces.condenseNonces(
+                                        keystore,
+                                        EncryptedNonces.getOperatorNonces(aggregationProcess, keystore.getIndex()),
+                                        NTRUEncryption.serialize(aggregationProcess.getIpfsFile().getPostqKey())
+                                ), keystore.getIndex()
+                        );
+                        ApplicationModel.getInstance().removeProcess(data.getId());
 
-                } catch (ChaincodeException e) {
-                    System.err.println(e.getMessage());
-                } catch (InterruptedException | TimeoutException | InvalidCipherTextException | IOException | ContractException e) {
-                    e.printStackTrace();
+                    } catch (ChaincodeException e) {
+                        System.err.println(e.getMessage());
+                    } catch (InterruptedException | TimeoutException | InvalidCipherTextException | IOException | ContractException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         };
