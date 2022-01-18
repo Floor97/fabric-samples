@@ -49,6 +49,7 @@ public class DataAndNonces {
             File f = new File("src/main/resources/AEP_hourly.csv");
             RandomAccessFile file = new RandomAccessFile(f, "r");
             int line = new Random().nextInt(10000);
+            System.out.println("line: " + line);
             file.seek(28 * line + 16);
             return file.readLine().substring(20, 25);
         } catch (Exception e) {
