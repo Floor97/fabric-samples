@@ -69,7 +69,7 @@ do_run() {
         ps -p "$pid" >/dev/null && echo -n ". "
     done
 
-    rm -r "$PROC_FILES"
+    #rm -r "$PROC_FILES"
 
     echo
     printf " == Finished run %3sp %3so\n" $P $O

@@ -6,7 +6,7 @@
 version: '2'
 
 volumes:
-  peer3.org1.example.com:
+  peer4.org1.example.com:
 
 networks:
   test:
@@ -14,7 +14,7 @@ networks:
 
 services:
 
-  peer3.org1.example.com:
+  peer4.org1.example.com:
     container_name: peer$PEER_ID.org$ORG_ID.example.com
     image: hyperledger/fabric-peer:latest
     labels:

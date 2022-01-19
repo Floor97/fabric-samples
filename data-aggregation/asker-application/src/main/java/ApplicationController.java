@@ -18,7 +18,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 public class ApplicationController {
-    private static int pointer = 0;
 
     /**
      * The main loop of the application is started. The user will be prompted with options and can
@@ -38,10 +37,9 @@ public class ApplicationController {
         System.out.println("Participants: ");
         String nrExpParticipants = scan.next();
 
-        while (pointer < 100) {
-            pointer++;
+        while (IdFactory.getInstance().getCounter() < 100) {
             try {
-                System.out.println("Start Cycle " + pointer + ": " + System.currentTimeMillis());
+                System.out.println("Start Cycle " + IdFactory.getInstance().getCounter() + ": " + System.currentTimeMillis());
                 Pair<String, DataQueryKeyStore> storePair = DataQueryTransactions.start(contract, operators, nrExpParticipants);
                 ApplicationModel.getInstance().addProcess(storePair.getP1(), storePair.getP2());
                 Thread.sleep(10000);
@@ -49,7 +47,6 @@ public class ApplicationController {
                 e.printStackTrace();
                 System.exit(1);
             }
-
         }
         System.out.println("Done! Press any to quit...");
         scan.next();

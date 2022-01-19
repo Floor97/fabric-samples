@@ -45,4 +45,8 @@ public class IdFactory {
         if (idFactory == null) idFactory = new IdFactory();
         return idFactory;
     }
+
+    public int getCounter() {
+        return counter;
+    }
 }
