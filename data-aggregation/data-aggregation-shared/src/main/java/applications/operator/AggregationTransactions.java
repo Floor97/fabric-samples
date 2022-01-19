@@ -41,7 +41,7 @@ public class AggregationTransactions extends ParticipantTransaction {
                 String.valueOf(dataQuery.getSettings().getNrOperators()),
                 String.valueOf(nrExpectedParticipants),
                 dataQuery.getIpfsFile().getHash().toHex()
-        });
+        }, dataQuery.getId());
         if (Integer.parseInt(new String(index)) != -1) keystore.setIndex(Integer.parseInt(new String(index)));
 
         return keystore;
@@ -68,7 +68,7 @@ public class AggregationTransactions extends ParticipantTransaction {
         transientData.put("data", data.serialize().getBytes(StandardCharsets.UTF_8));
         transientData.put("nonces", EncryptedNonces.serialize(nonces).getBytes(StandardCharsets.UTF_8));
 
-        repeat(contract.createTransaction("Add").setTransient(transientData), new String[]{id});
+        repeat(contract.createTransaction("Add").setTransient(transientData), new String[]{id}, id);
     }
 
     /**

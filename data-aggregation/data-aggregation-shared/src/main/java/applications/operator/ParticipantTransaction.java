@@ -17,16 +17,19 @@ public class ParticipantTransaction {
      *
      * @param transaction the repeated transaction.
      * @param args        the arguments of the transaction.
+     * @param id          the id of the asset the transaction references.
      * @return the response of the transaction.
      * @throws InterruptedException when the thread is interrupted when sleep is done.
      */
-    public static byte[] repeat(org.hyperledger.fabric.gateway.Transaction transaction, String[] args) throws InterruptedException {
+    public static byte[] repeat(org.hyperledger.fabric.gateway.Transaction transaction, String[] args, String id) throws InterruptedException {
         for (int i = 0; i < 10; i++) {
             try {
                 return transaction.submit(args);
             } catch (ContractException | TimeoutException | InterruptedException e) {
                 System.out.println("Failed to commit transaction, trying again..." + i);
-                Thread.sleep(new Random().nextInt(10) * 200 + i * 1000);
+                int timeout = new Random().nextInt(10) * 200 + i * 1000;
+                System.out.println("Waiting, id time: " + id + " " + timeout);
+                Thread.sleep(timeout);
             }
         }
         throw new RuntimeException("Failed to commit transaction");

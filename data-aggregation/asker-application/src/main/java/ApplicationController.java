@@ -1,7 +1,6 @@
 import applications.asker.DataQueryKeyStore;
 import applications.asker.DataQueryTransactions;
 import applications.asker.IdFactory;
-import applications.operator.ParticipantTransaction;
 import datatypes.dataquery.DataQuery;
 import datatypes.values.EncryptedData;
 import datatypes.values.EncryptedNonce;
@@ -11,7 +10,6 @@ import org.bouncycastler.crypto.InvalidCipherTextException;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractEvent;
 import org.hyperledger.fabric.gateway.ContractException;
-import org.hyperledger.fabric.shim.ChaincodeException;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -20,6 +18,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 public class ApplicationController {
+    private static int pointer = 0;
 
     /**
      * The main loop of the application is started. The user will be prompted with options and can
@@ -34,43 +33,26 @@ public class ApplicationController {
 
         System.out.println("username: ");
         IdFactory.getInstance().setAskerName(scan.next());
+        System.out.println("Operators: ");
+        String operators = scan.next();
+        System.out.println("Participants: ");
+        String nrExpParticipants = scan.next();
 
-        while (true) {
-            System.out.println("Please select a transaction: exists, start, close, retrieve or remove. Type exit to stop.");
+        while (pointer < 100) {
+            pointer++;
             try {
-                switch (scan.next()) {
-                    case "start":
-                        Pair<String, DataQueryKeyStore> storePair = DataQueryTransactions.start(contract);
-                        ApplicationModel.getInstance().addProcess(storePair.getP1(), storePair.getP2());
-                        break;
-                    case "close":
-                        DataQueryTransactions.close(contract);
-                        break;
-                    case "retrieve":
-                        DataQueryTransactions.retrieve(contract);
-                        break;
-                    case "remove":
-                        String id = ParticipantTransaction.scanNextLine("Transaction Remove selected\nID: ");
-                        DataQueryTransactions.remove(contract, id);
-                        ApplicationModel.getInstance().removeProcess(id);
-                        break;
-                    case "exists":
-                        DataQueryTransactions.exists(contract);
-                        break;
-                    case "exit":
-                        System.exit(0);
-                        break;
-                    default:
-                        System.out.println("Unrecognised transaction");
-                        break;
-                }
-            } catch (ChaincodeException e) {
-                System.err.println(e.getMessage());
-            } catch (ContractException | InterruptedException | TimeoutException | IOException e) {
-                System.err.println("Error occured in handling transaction!");
+                System.out.println("Start Cycle " + pointer + ": " + System.currentTimeMillis());
+                Pair<String, DataQueryKeyStore> storePair = DataQueryTransactions.start(contract, operators, nrExpParticipants);
+                ApplicationModel.getInstance().addProcess(storePair.getP1(), storePair.getP2());
+                Thread.sleep(10000);
+            } catch (ContractException | InterruptedException | TimeoutException e) {
                 e.printStackTrace();
+                System.exit(1);
             }
+
         }
+        System.out.println("Done! Press any to quit...");
+        scan.next();
     }
 
     /**
@@ -94,8 +76,7 @@ public class ApplicationController {
                     dataAndNonces = dataAndNonces.subtract(new BigInteger(new String(decryptedNonce)));
                 }
 
-                System.out.println("Result of " + dataQuery.getId() + " is " + dataAndNonces.toString());
-
+                System.out.println("End ID: " + dataQuery.getId() + ", " + System.currentTimeMillis());
             } catch (IOException e) {
                 System.err.println("Could not deserialize data query asset!");
                 e.printStackTrace();

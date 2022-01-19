@@ -27,12 +27,10 @@ public class DataAndNonces {
      */
     public static Pair<EncryptedData, EncryptedNonces> generateDataAndNonces(String modulus, String[] postQuantumPks) throws InvalidCipherTextException {
         BigInteger data = new BigInteger(DataAndNonces.getData());
-        System.out.println("data: " + data);
         EncryptedNonces nonces = new EncryptedNonces(new EncryptedNonce[postQuantumPks.length]);
         for (String postQuantumPk : postQuantumPks) {
             String nonce = String.valueOf(new Random().nextInt(Integer.MAX_VALUE));
             data = data.add(new BigInteger(nonce));
-            System.out.println("nonce: " + nonce);
 
             nonces.addNonce(new EncryptedNonce(NTRUEncryption.encrypt(nonce.getBytes(), postQuantumPk)));
         }
@@ -49,7 +47,6 @@ public class DataAndNonces {
             File f = new File("src/main/resources/AEP_hourly.csv");
             RandomAccessFile file = new RandomAccessFile(f, "r");
             int line = new Random().nextInt(7000);
-            System.out.println("line: " + line);
             file.seek(28 * line + 16);
             return file.readLine().substring(20, 25);
         } catch (Exception e) {

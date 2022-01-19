@@ -15,10 +15,7 @@ import org.hyperledger.fabric.gateway.ContractException;
 import org.hyperledger.fabric.shim.ChaincodeException;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Scanner;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
@@ -35,31 +32,11 @@ public class ApplicationController {
     public static void applicationLoop(Contract contractAgg, Contract contractQuery) {
         ApplicationController.setAggregationProcessConsumers(contractAgg, contractQuery);
         ApplicationController.setDataQueryConsumers(contractQuery, contractAgg);
-        Scanner scan = new Scanner(System.in);
+        System.out.println("Ready");
 
         while (true) {
-            System.out.println("Please select a transaction: exists, or change threshold: threshold. Type exit to stop.");
-            try {
-                switch (scan.next()) {
-                    case "exists":
-                        AggregationTransactions.exists(contractAgg);
-                        break;
-                    case "threshold":
-                        ApplicationModel.getInstance().setOperatorThreshold(
-                                Integer.parseInt(ParticipantTransaction.scanNextLine("New threshold: ")));
-                        break;
-                    case "exit":
-                        System.exit(0);
-                        break;
-                    default:
-                        System.out.println("Unrecognised transaction");
-                        break;
-                }
-            } catch (ChaincodeException e) {
-                System.err.println(e.getMessage());
-            } catch (ContractException | IOException e) {
-                e.printStackTrace();
-            }
+                try { Thread.sleep(3000);
+                } catch (InterruptedException ignore) { }
         }
     }
 
