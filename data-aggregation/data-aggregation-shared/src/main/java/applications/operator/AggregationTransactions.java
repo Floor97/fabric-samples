@@ -25,18 +25,15 @@ public class AggregationTransactions extends ParticipantTransaction {
      * @param nrExpectedParticipants the number of expected participants by the asker.
      * @param dataQuery   the data query contract.
      * @return the index of the operator.
-     * @throws ContractException    when an exception occurs in the aggregation process contract.
-     *                              An exception occurs when the aggregation process asset already exists but is not in
-     *                              selection phase.
      * @throws InterruptedException thrown by the submit method.
      */
-    public static int start(Contract contractAgg, int nrExpectedParticipants, DataQuery dataQuery) throws ContractException, InterruptedException, TimeoutException, IOException {
+    public static int start(Contract contractAgg, int nrExpectedParticipants, DataQuery dataQuery) throws InterruptedException, IOException {
         byte[] index = repeat(contractAgg.createTransaction("Start"), new String[]{
                 dataQuery.getId(),
                 String.valueOf(dataQuery.getSettings().getNrOperators()),
                 String.valueOf(nrExpectedParticipants),
                 dataQuery.getIpfsFile().getHash().toHex()
-        });
+        }, dataQuery.getId());
         return Integer.parseInt(new String(index));
     }
 
@@ -65,7 +62,7 @@ public class AggregationTransactions extends ParticipantTransaction {
         transientData.put("data", data.toString().getBytes(StandardCharsets.UTF_8));
         transientData.put("nonces", builder.toString().getBytes(StandardCharsets.UTF_8));
 
-        repeat(contract.createTransaction("Add").setTransient(transientData), new String[]{id});
+        repeat(contract.createTransaction("Add").setTransient(transientData), new String[]{id}, id);
     }
 
     /**

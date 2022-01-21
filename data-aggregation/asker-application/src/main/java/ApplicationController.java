@@ -26,43 +26,24 @@ public class ApplicationController {
 
         System.out.println("username: ");
         IdFactory.getInstance().setAskerName(ParticipantTransaction.getNext());
+        System.out.println("Operators: ");
+        String operators = ParticipantTransaction.getNext();
+        System.out.println("Participants: ");
+        String nrExpParticipants = ParticipantTransaction.getNext();
 
-        while (true) {
-            System.out.println("Please select a transaction: exists, start, close, retrieve or remove. Type exit to stop.");
+        while (IdFactory.getInstance().getCounter() < 100) {
             try {
-                switch (ParticipantTransaction.getNext()) {
-                    case "start":
-                        String newId = DataQueryTransactions.start(contract);
-                        ApplicationModel.getInstance().addProcess(newId);
-                        break;
-                    case "close":
-                        DataQueryTransactions.close(contract);
-                        break;
-                    case "retrieve":
-                        DataQueryTransactions.retrieve(contract);
-                        break;
-                    case "remove":
-                        String id = ParticipantTransaction.scanNextLine("Transaction Remove selected\nID: ");
-                        DataQueryTransactions.remove(contract, id);
-                        ApplicationModel.getInstance().removeProcess(id);
-                        break;
-                    case "exists":
-                        DataQueryTransactions.exists(contract);
-                        break;
-                    case "exit":
-                        System.exit(0);
-                        break;
-                    default:
-                        System.out.println("Unrecognised transaction");
-                        break;
-                }
-            } catch (ChaincodeException e) {
-                System.err.println(e.getMessage());
-            } catch (ContractException | InterruptedException | TimeoutException | IOException e) {
-                System.err.println("Error occured in handling transaction!");
+                System.out.println("Start Cycle " + IdFactory.getInstance().getCounter() + ": " + System.currentTimeMillis());
+                String id = DataQueryTransactions.start(contract, operators, nrExpParticipants);
+                ApplicationModel.getInstance().addProcess(id);
+                Thread.sleep(10000);
+            } catch (ContractException | InterruptedException | TimeoutException e) {
                 e.printStackTrace();
+                System.exit(1);
             }
         }
+        System.out.println("Done! Press any to quit...");
+        ParticipantTransaction.getNext();
     }
 
     /**
@@ -72,20 +53,22 @@ public class ApplicationController {
      */
     private static void setContractListener(Contract contract) {
         Consumer<ContractEvent> consumer = contractEvent -> {
-            if (!contractEvent.getTransactionEvent().isValid() || !"DoneQuery".equals(contractEvent.getName())) return;
-
             try {
+                if (!contractEvent.getTransactionEvent().isValid() || !"DoneQuery".equals(contractEvent.getName())) return;
+                System.out.println("DoneQuery");
                 DataQuery dataQuery = DataQuery.deserialize(contractEvent.getPayload().get());
                 BigInteger dataAndNonces = dataQuery.getIpfsFile().getData();
                 BigInteger[] nonces = dataQuery.getIpfsFile().getNonces();
+
+
 
                 for (BigInteger nonce : nonces) {
                     dataAndNonces = dataAndNonces.subtract(nonce);
                 }
 
                 System.out.println("Result of " + dataQuery.getId() + " is " + dataAndNonces.toString());
-
-            } catch (IOException e) {
+                System.out.println("End Cycle "  + dataQuery.getId() + ": " + System.currentTimeMillis());
+            } catch (Exception e) {
                 System.err.println("Could not deserialize data query asset!");
                 e.printStackTrace();
             }

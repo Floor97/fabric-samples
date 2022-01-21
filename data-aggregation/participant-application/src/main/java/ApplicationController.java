@@ -14,6 +14,7 @@ import org.hyperledger.fabric.shim.ChaincodeException;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -79,19 +80,23 @@ public class ApplicationController {
                 DataQuery data = DataQuery.deserialize(contractEvent.getPayload().get());
                 switch (contractEvent.getName()) {
                     case "StartQuery":
-                        System.out.println("StartQuery");
-                        int index = AggregationTransactions.start(contractAgg, data.getSettings().getNrExpectedParticipants(), data);
-                        if (index == -1) return;
-                        ApplicationModel.getInstance().addProcess(data.getId(), index);
+                        synchronized (ApplicationModel.getInstance()) {
 
-                        ApplicationController.ruleTimeLimit(contractQuery, contractAgg, data);
+                            System.out.println("StartQuery");
+                            int index = AggregationTransactions.start(contractAgg, data.getSettings().getNrExpectedParticipants(), data);
+                            System.out.println("For query " + data.getId() + " my index is " + index);
+                            if (index == -1) return;
+                            ApplicationModel.getInstance().addProcess(data.getId(), index);
+
+                            ApplicationController.ruleTimeLimit(contractQuery, contractAgg, data);
+                        }
                         break;
                     case "RemoveQuery":
                         System.out.println("RemoveQuery");
                         AggregationTransactions.remove(contractAgg, data.getId());
                         break;
                 }
-            } catch (ContractException | IOException | InterruptedException | TimeoutException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         };
@@ -110,25 +115,26 @@ public class ApplicationController {
                 AggregationProcess aggregationProcess = AggregationProcess.deserialize(contractEvent.getPayload().get());
                 switch (contractEvent.getName()) {
                     case "StartAggregating":
-                        if (ApplicationModel.getInstance().getOperatorThreshold() > aggregationProcess.getNrOperatorsSelected()
-                                || ApplicationModel.getInstance().getIndex(aggregationProcess.getId()) == null) return;
+                            if (ApplicationModel.getInstance().getOperatorThreshold() > aggregationProcess.getNrOperatorsSelected()
+                                    && ApplicationModel.getInstance().getIndex(aggregationProcess.getId()) == null)
+                                return;
 
-                        System.out.println("StartAggregation");
+                            System.out.println("StartAggregation");
 
-                        Pair<BigInteger, BigInteger[]> dataAndNonces = DataAndNonces.generateDataAndNonces(aggregationProcess.getNrOperatorsSelected());
-                        AggregationTransactions.add(contractAgg, aggregationProcess.getId(), dataAndNonces.getP1(), dataAndNonces.getP2());
+                            Pair<BigInteger, BigInteger[]> dataAndNonces = DataAndNonces.generateDataAndNonces(aggregationProcess.getNrOperatorsSelected());
+                            AggregationTransactions.add(contractAgg, aggregationProcess.getId(), dataAndNonces.getP1(), dataAndNonces.getP2());
+
                         break;
                     case "ParticipantsReached":
                         synchronized (ApplicationModel.getInstance()) {
-                            System.out.println("ParticipantsReached");
                             Integer index = ApplicationModel.getInstance().getIndex(aggregationProcess.getId());
+                            System.out.println("ParticipantsReached for " + aggregationProcess.getId() + ", our index is " + index);
                             if (index == null) return;
 
-                            BigInteger reEncryptedNonce = Nonces.condenseNonces(Nonces.getOperatorNonces(
-                                    index,
+                            BigInteger[] opNOnces = Nonces.getOperatorNonces(index,
                                     aggregationProcess.getIpfsFile().getNonces()
-                                    )
                             );
+                            BigInteger reEncryptedNonce = Nonces.condenseNonces(opNOnces);
 
                             applications.operator.DataQueryTransactions.add(contractQuery, aggregationProcess.getId(), aggregationProcess.getIpfsFile(),
                                     reEncryptedNonce, index);
@@ -136,10 +142,8 @@ public class ApplicationController {
                             break;
                         }
                 }
-            } catch (ChaincodeException e) {
+            } catch (Exception e) {
                 System.err.println(e.getMessage());
-            } catch (InterruptedException | TimeoutException | InvalidCipherTextException | IOException | ContractException e) {
-                e.printStackTrace();
             }
         };
 

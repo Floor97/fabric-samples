@@ -32,7 +32,7 @@ public class DataQueryTransactions extends ParticipantTransaction {
                 id,
                 String.valueOf(file.getNonces().size()),
                 String.valueOf(index)
-        });
+        }, id);
     }
 
     /**

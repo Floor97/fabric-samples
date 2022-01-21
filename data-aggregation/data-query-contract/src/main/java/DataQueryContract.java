@@ -49,48 +49,6 @@ public class DataQueryContract implements ContractInterface {
     }
 
     /**
-<<<<<<< HEAD
-     * Sets the data, number of participants and adds the respective nonce of operator zero. If only
-     * one operator was required the DoneQuery event is set, otherwise ResultQuery. Throws an exception
-     * if the state of the process is not waiting, or if the data query process does not exist.
-     *
-     * @param ctx            the transaction context.
-     * @param id             the id of the data query process.
-     * @param nrParticipants the number of participants in the data aggregation process.
-     * @throws IOException when the connection with IPFS cannot be made.
-     */
-    @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void AddOperatorZero(Context ctx, String id, int nrParticipants) throws IOException {
-        ChaincodeStub stub = retrieveStub(ctx, id);
-        Map<String, byte[]> trans = stub.getTransient();
-        DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
-
-        if (!dataQuery.isWaiting())
-            throw new ChaincodeException(String.format("Data query, %s, is not waiting", id));
-
-        DataQueryIPFSFile ipfsFile = dataQuery.getIpfsFile();
-        BigInteger encData = new BigInteger(new String(trans.get("data")));
-
-        dataQuery.getIpfsFile().setData(encData);
-        dataQuery.setNrParticipants(nrParticipants);
-        ipfsFile.addNonce(new BigInteger(new String(trans.get("nonces"))));
-
-        String serDataQuery;
-        if (ipfsFile.isFullNonces()) {
-            dataQuery.setDone();
-            serDataQuery = dataQuery.serialize();
-            stub.setEvent("DoneQuery", serDataQuery.getBytes(StandardCharsets.UTF_8));
-        } else {
-            serDataQuery = dataQuery.serialize();
-            stub.setEvent("ResultQuery", serDataQuery.getBytes(StandardCharsets.UTF_8));
-        }
-
-        stub.putStringState(id, serDataQuery);
-    }
-
-    /**
-=======
->>>>>>> c5de5ddcf4c9f200a57ce7c1770dfe45a0a23aa6
      * Sets the data and number of participants, and adds the respective nonce of the operator. If the data
      * and number of participants is already set, checks if it corresponds to the provided data and number
      * of participants. If this is not the case, sets the inconsistency flag of data query. If all
@@ -115,7 +73,7 @@ public class DataQueryContract implements ContractInterface {
         DataQueryIPFSFile ipfsFile = dataQuery.getIpfsFile();
         BigInteger encData = new BigInteger(new String(trans.get("data")));
 
-        if(dataQuery.getIpfsFile().getData() == null) {
+        if(dataQuery.getIpfsFile().getData().toString().equals("0")) {
             dataQuery.getIpfsFile().setData(encData);
             dataQuery.setNrParticipants(nrParticipants);
         } else if (!ipfsFile.getData().equals(encData)

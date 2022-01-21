@@ -24,17 +24,14 @@ public class DataQueryTransactions {
      * @throws InterruptedException thrown by the submit method.
      * @throws TimeoutException     thrown by the submit method.
      */
-    public static String start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
-        String nrOps = scanNextLine("Transaction Start selected\nNumber of Operators: ");
-        String nrExpectedParticipants = scanNextLine("Number of expected participants: ");
-        String timeLimit = scanNextLine("Time limit: ");
+    public static String start(Contract contract, String nrOps, String nrExpectedParticipants) throws ContractException, InterruptedException, TimeoutException {
         String id = IdFactory.getInstance().createId();
 
         contract.createTransaction("Start").submit(
                 id,
                 nrOps,
                 nrExpectedParticipants,
-                timeLimit
+                "600"
         );
         return id;
     }
