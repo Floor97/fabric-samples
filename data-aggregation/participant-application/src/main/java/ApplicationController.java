@@ -78,7 +78,7 @@ public class ApplicationController {
                 DataQuery data = DataQuery.deserialize(contractEvent.getPayload().get());
                 switch (contractEvent.getName()) {
                     case "StartQuery":
-                        System.out.println("Begin Step 2:" + System.currentTimeMillis());
+                        System.out.println("Begin Step 2: " + System.currentTimeMillis());
                         System.out.println("StartQuery");
                         OperatorKeyStore keystore = AggregationTransactions.start(contractAgg, data.getSettings().getNrExpectedParticipants(), data);
                         if (keystore.getIndex() == -1) return;
@@ -116,7 +116,7 @@ public class ApplicationController {
                         System.out.println("Begin Step 3: " + System.currentTimeMillis());
                         if (ApplicationModel.getInstance().getOperatorThreshold() > aggregationProcess.getIpfsFile().getOperatorKeys().length
                                 && ApplicationModel.getInstance().getKey(aggregationProcess.getId()) == null) return;
-                        System.out.println("Begin Step 3: " + System.currentTimeMillis());
+                        System.out.println("End Step 3: " + System.currentTimeMillis());
 
                         System.out.println("Begin Step 4: " + System.currentTimeMillis());
                         System.out.println("StartAggregation");
@@ -130,8 +130,10 @@ public class ApplicationController {
                     case "ParticipantsReached":
                         synchronized (ApplicationModel.getInstance()) {
 
+                            System.out.println("Begin Step 5: " + System.currentTimeMillis());
                             System.out.println("ParticipantsReached");
                             OperatorKeyStore opKeystore = ApplicationModel.getInstance().getKey(aggregationProcess.getId());
+                            System.out.println("End Step 5: " + System.currentTimeMillis());
                             if (opKeystore == null) return;
                             System.out.println("Begin Step 6: " + System.currentTimeMillis());
                             EncryptedNonce reEncryptedNonces = EncryptedNonces.condenseNonces(
@@ -175,7 +177,9 @@ public class ApplicationController {
                     try {
                         if (!ApplicationModel.getInstance().containsId(data.getId())) return;
 
+                        System.out.println("Begin Step 5: " + System.currentTimeMillis());
                         AggregationProcess aggregationProcess = AggregationTransactions.close(contractAgg, data.getId());
+                        System.out.println("End Step 5: " + System.currentTimeMillis());
 
                         System.out.println("Begin Step 6: " + System.currentTimeMillis());
                         EncryptedNonce reEncryptedNonces = EncryptedNonces.condenseNonces(
