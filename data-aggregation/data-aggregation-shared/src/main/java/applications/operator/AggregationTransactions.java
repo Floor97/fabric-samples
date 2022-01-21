@@ -11,13 +11,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class AggregationTransactions extends ParticipantTransaction {
-
-    private static final Scanner scan = new Scanner(System.in);
 
     /**
      * The Start transaction in the aggregation process contract is submitted. The NTRUEncrypt

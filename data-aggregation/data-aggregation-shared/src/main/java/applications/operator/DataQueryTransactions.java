@@ -7,10 +7,8 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner;
 
 public class DataQueryTransactions extends ParticipantTransaction {
-    private static final Scanner scan = new Scanner(System.in);
 
     /**
      * The Add transaction in the data query contract is submitted. The obfuscated

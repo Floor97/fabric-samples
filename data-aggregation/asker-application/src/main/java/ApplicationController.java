@@ -9,7 +9,6 @@ import org.hyperledger.fabric.shim.ChaincodeException;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
@@ -24,19 +23,17 @@ public class ApplicationController {
      */
     public static void applicationLoop(Contract contract) {
         ApplicationController.setContractListener(contract);
-        Scanner scan = new Scanner(System.in);
 
         System.out.println("username: ");
-        IdFactory.getInstance().setAskerName(scan.next());
+        IdFactory.getInstance().setAskerName(ParticipantTransaction.getNext());
 
         while (true) {
             System.out.println("Please select a transaction: exists, start, close, retrieve or remove. Type exit to stop.");
             try {
-                switch (scan.next()) {
+                switch (ParticipantTransaction.getNext()) {
                     case "start":
                         String newId = DataQueryTransactions.start(contract);
                         ApplicationModel.getInstance().addProcess(newId);
-                        System.out.println("End Step 1: " + System.currentTimeMillis());
                         break;
                     case "close":
                         DataQueryTransactions.close(contract);
@@ -76,7 +73,6 @@ public class ApplicationController {
     private static void setContractListener(Contract contract) {
         Consumer<ContractEvent> consumer = contractEvent -> {
             if (!contractEvent.getTransactionEvent().isValid() || !"DoneQuery".equals(contractEvent.getName())) return;
-            System.out.println("Begin Step 8: " + System.currentTimeMillis());
 
             try {
                 DataQuery dataQuery = DataQuery.deserialize(contractEvent.getPayload().get());
@@ -88,7 +84,6 @@ public class ApplicationController {
                 }
 
                 System.out.println("Result of " + dataQuery.getId() + " is " + dataAndNonces.toString());
-                System.out.println("End Step 8: " + System.currentTimeMillis());
 
             } catch (IOException e) {
                 System.err.println("Could not deserialize data query asset!");

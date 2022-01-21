@@ -1,16 +1,16 @@
 package applications.asker;
 
-import datatypes.dataquery.DataQuery;
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.ContractException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
+import static applications.operator.ParticipantTransaction.printResponse;
+import static applications.operator.ParticipantTransaction.scanNextLine;
+
 public class DataQueryTransactions {
-    private static final Scanner scan = new Scanner(System.in);
 
     /**
      * The Start transaction in the data query contract is submitted. The Paillier and NTRUEncrypt
@@ -28,7 +28,6 @@ public class DataQueryTransactions {
         String nrOps = scanNextLine("Transaction Start selected\nNumber of Operators: ");
         String nrExpectedParticipants = scanNextLine("Number of expected participants: ");
         String timeLimit = scanNextLine("Time limit: ");
-        System.out.println("Begin Step 1: " + System.currentTimeMillis());
         String id = IdFactory.getInstance().createId();
 
         contract.createTransaction("Start").submit(
@@ -104,26 +103,5 @@ public class DataQueryTransactions {
         );
 
         System.out.printf("Asset exists: %s%n", new String(responseExists, StandardCharsets.UTF_8));
-    }
-
-    /**
-     * Helper method that prints the message and sends back the next input on System.in.
-     *
-     * @param message the message that will be printed.
-     * @return the next input on System.in.
-     */
-    private static String scanNextLine(String message) {
-        System.out.print(message);
-        return scan.next();
-    }
-
-    /**
-     * Helper method that deserializes the response of a transaction and prints it.
-     *
-     * @param response the response of a data query contract transaction.
-     */
-    private static void printResponse(byte[] response) throws IOException {
-        DataQuery serDataQuery = DataQuery.deserialize(response);
-        System.out.println("Response: " + serDataQuery);
     }
 }

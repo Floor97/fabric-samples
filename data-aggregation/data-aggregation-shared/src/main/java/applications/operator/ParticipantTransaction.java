@@ -52,4 +52,8 @@ public class ParticipantTransaction {
         System.out.print(message);
         return scan.next();
     }
+
+    public static String getNext() {
+        return scan.next();
+    }
 }
