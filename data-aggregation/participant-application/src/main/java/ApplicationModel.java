@@ -37,6 +37,10 @@ public class ApplicationModel {
         return ids.remove(id);
     }
 
+    public boolean containsId(String id) {
+        return this.ids.contains(id);
+    }
+
     public static ApplicationModel getInstance() {
         if (applicationModel == null) applicationModel = new ApplicationModel();
         return applicationModel;

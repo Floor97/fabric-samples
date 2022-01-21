@@ -25,18 +25,19 @@ public class AggregationTransactions extends ParticipantTransaction {
      * hash of the IPFS file used in the data query process are used as regular input.
      *
      * @param contractAgg the aggregation process contract.
+     * @param nrExpectedParticipants the number of expected participants by the asker.
      * @param dataQuery   the data query contract.
      * @return the index of the operator.
      * @throws ContractException    when an exception occurs in the aggregation process contract.
      *                              An exception occurs when the aggregation process asset already exists but is not in
      *                              selection phase.
      * @throws InterruptedException thrown by the submit method.
-     * @throws TimeoutException     thrown by the submit method.
      */
-    public static int start(Contract contractAgg, DataQuery dataQuery) throws ContractException, InterruptedException, TimeoutException, IOException {
+    public static int start(Contract contractAgg, int nrExpectedParticipants, DataQuery dataQuery) throws ContractException, InterruptedException, TimeoutException, IOException {
         byte[] index = repeat(contractAgg.createTransaction("Start"), new String[]{
                 dataQuery.getId(),
                 String.valueOf(dataQuery.getSettings().getNrOperators()),
+                String.valueOf(nrExpectedParticipants),
                 dataQuery.getIpfsFile().getHash().toHex()
         });
         return Integer.parseInt(new String(index));

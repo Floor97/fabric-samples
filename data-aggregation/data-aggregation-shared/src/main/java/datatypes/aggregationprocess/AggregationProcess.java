@@ -24,10 +24,14 @@ public class AggregationProcess {
     private int nrOperatorsSelected;
 
     @Property()
+    private final int nrExpectedParticipants;
+
+    @Property()
     private AggregationProcessState state = AggregationProcessState.SELECTING;
 
-    public AggregationProcess(String id, AggregationIPFSFile ipfsFile, int nrOperatorsSelected) {
+    public AggregationProcess(String id, int nrExpectedParticipants, AggregationIPFSFile ipfsFile, int nrOperatorsSelected) {
         this.id = id;
+        this.nrExpectedParticipants = nrExpectedParticipants;
         this.ipfsFile = ipfsFile;
         this.nrOperatorsSelected = nrOperatorsSelected;
     }
@@ -54,8 +58,9 @@ public class AggregationProcess {
 
         String id = json.getString("id");
         AggregationIPFSFile ipfsFile = IPFSConnection.getInstance().getAggregationIPFSFile(Multihash.fromHex(json.getString("hash")));
+        int nrExpectedParticipants = json.getInt("nrExpectedParticipants");
 
-        AggregationProcess aggregationProcess = new AggregationProcess(id, ipfsFile, json.getInt("nrOperatorsSelected"));
+        AggregationProcess aggregationProcess = new AggregationProcess(id, nrExpectedParticipants, ipfsFile, json.getInt("nrOperatorsSelected"));
         aggregationProcess.state = json.getEnum(AggregationProcessState.class, "state");
 
         return aggregationProcess;
@@ -71,6 +76,7 @@ public class AggregationProcess {
                 .put("id", this.id)
                 .put("hash", this.ipfsFile.getHash().toHex())
                 .put("nrOperatorsSelected", this.nrOperatorsSelected)
+                .put("nrExpectedParticipants", this.nrExpectedParticipants)
                 .put("state", this.state);
         return json.toString();
     }
@@ -80,6 +86,7 @@ public class AggregationProcess {
         return "id: " + this.id +
                 "process data: " + this.ipfsFile.toString() +
                 "number of selected operators: " + this.nrOperatorsSelected +
+                "nrExpectedParticipants: " + this.nrExpectedParticipants +
                 "state: " + this.state;
     }
 
@@ -97,6 +104,10 @@ public class AggregationProcess {
 
     public void addOperator() {
         this.nrOperatorsSelected++;
+    }
+
+    public boolean isExpectedParticipants() {
+        return this.nrExpectedParticipants <= this.ipfsFile.getNonces().size();
     }
 
     public boolean isSelecting() {

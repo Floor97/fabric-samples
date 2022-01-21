@@ -24,14 +24,15 @@ public class DataQueryContract implements ContractInterface {
      * object. The event StartQuery is set in the transaction. Throws an exception if the suggested id
      * of the data query process is already in use.
      *
-     * @param ctx         the transaction context.
-     * @param id          the id of the new data query process.
-     * @param nrOperators the number of operators used in the process.
-     * @param duration    the end time for the process.
+     * @param ctx                    the transaction context.
+     * @param id                     the id of the new data query process.
+     * @param nrOperators            the number of operators used in the process.
+     * @param nrExpectedParticipants the number of expected participants by the asker.
+     * @param duration               the end time for the process.
      * @throws IOException when the connection with IPFS cannot be made.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void Start(Context ctx, String id, int nrOperators, long duration) throws IOException {
+    public void Start(Context ctx, String id, int nrOperators, int nrExpectedParticipants, long duration) throws IOException {
         ChaincodeStub stub = ctx.getStub();
 
         if (Exists(ctx, id))
@@ -41,13 +42,14 @@ public class DataQueryContract implements ContractInterface {
                 new BigInteger("0"),
                 new BigInteger[nrOperators]);
         ipfsFile.createHash();
-        DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, duration), ipfsFile, -1);
+        DataQuery dataQuery = new DataQuery(id, new DataQuerySettings(nrOperators, nrExpectedParticipants, duration), ipfsFile, -1);
         String serDataQuery = dataQuery.serialize();
         stub.setEvent("StartQuery", serDataQuery.getBytes(StandardCharsets.UTF_8));
         stub.putStringState(id, serDataQuery);
     }
 
     /**
+<<<<<<< HEAD
      * Sets the data, number of participants and adds the respective nonce of operator zero. If only
      * one operator was required the DoneQuery event is set, otherwise ResultQuery. Throws an exception
      * if the state of the process is not waiting, or if the data query process does not exist.
@@ -87,6 +89,8 @@ public class DataQueryContract implements ContractInterface {
     }
 
     /**
+=======
+>>>>>>> c5de5ddcf4c9f200a57ce7c1770dfe45a0a23aa6
      * Sets the data and number of participants, and adds the respective nonce of the operator. If the data
      * and number of participants is already set, checks if it corresponds to the provided data and number
      * of participants. If this is not the case, sets the inconsistency flag of data query. If all
@@ -100,7 +104,7 @@ public class DataQueryContract implements ContractInterface {
      * @throws IOException when the connection with IPFS cannot be made.
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void AddOperatorN(Context ctx, String id, int nrParticipants) throws IOException {
+    public void Add(Context ctx, String id, int nrParticipants) throws IOException {
         ChaincodeStub stub = retrieveStub(ctx, id);
         Map<String, byte[]> trans = stub.getTransient();
         DataQuery dataQuery = DataQuery.deserialize(stub.getState(id));
@@ -111,7 +115,10 @@ public class DataQueryContract implements ContractInterface {
         DataQueryIPFSFile ipfsFile = dataQuery.getIpfsFile();
         BigInteger encData = new BigInteger(new String(trans.get("data")));
 
-        if (!ipfsFile.getData().toString().equals(encData.toString())
+        if(dataQuery.getIpfsFile().getData() == null) {
+            dataQuery.getIpfsFile().setData(encData);
+            dataQuery.setNrParticipants(nrParticipants);
+        } else if (!ipfsFile.getData().equals(encData)
                 || dataQuery.getNrParticipants() != nrParticipants)
             dataQuery.setIncFlag();
         ipfsFile.addNonce(new BigInteger(new String(trans.get("nonces"))));

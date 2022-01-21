@@ -26,6 +26,7 @@ public class DataQueryTransactions {
      */
     public static String start(Contract contract) throws ContractException, InterruptedException, TimeoutException {
         String nrOps = scanNextLine("Transaction Start selected\nNumber of Operators: ");
+        String nrExpectedParticipants = scanNextLine("Number of expected participants: ");
         String timeLimit = scanNextLine("Time limit: ");
         System.out.println("Begin Step 1: " + System.currentTimeMillis());
         String id = IdFactory.getInstance().createId();
@@ -33,6 +34,7 @@ public class DataQueryTransactions {
         contract.createTransaction("Start").submit(
                 id,
                 nrOps,
+                nrExpectedParticipants,
                 timeLimit
         );
         return id;
