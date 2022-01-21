@@ -79,12 +79,14 @@ public class ApplicationController {
                 switch (contractEvent.getName()) {
                     case "StartQuery":
                         System.out.println("Begin Step 2: " + System.currentTimeMillis());
-                        System.out.println("StartQuery");
-                        OperatorKeyStore keystore = AggregationTransactions.start(contractAgg, data.getSettings().getNrExpectedParticipants(), data);
-                        if (keystore.getIndex() == -1) return;
-                        ApplicationModel.getInstance().addProcess(data.getId(), keystore);
+                        synchronized (ApplicationModel.getInstance()) {
+                            System.out.println("StartQuery");
+                            OperatorKeyStore keystore = AggregationTransactions.start(contractAgg, data.getSettings().getNrExpectedParticipants(), data);
+                            if (keystore.getIndex() == -1) return;
+                            ApplicationModel.getInstance().addProcess(data.getId(), keystore);
 
-                        ApplicationController.ruleTimeLimit(contractQuery, contractAgg, data, keystore);
+                            ApplicationController.ruleTimeLimit(contractQuery, contractAgg, data, keystore);
+                        }
                         System.out.println("End Step 2: " + System.currentTimeMillis());
                         break;
                     case "RemoveQuery":
