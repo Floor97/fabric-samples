@@ -115,7 +115,7 @@ public class DataQueryContract implements ContractInterface {
         DataQueryIPFSFile ipfsFile = dataQuery.getIpfsFile();
         BigInteger encData = new BigInteger(new String(trans.get("data")));
 
-        if(dataQuery.getIpfsFile().getData() == null) {
+        if(dataQuery.getIpfsFile().getData().toString().equals("0")) {
             dataQuery.getIpfsFile().setData(encData);
             dataQuery.setNrParticipants(nrParticipants);
         } else if (!ipfsFile.getData().equals(encData)

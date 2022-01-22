@@ -77,12 +77,14 @@ public class ApplicationController {
                     case "StartQuery":
                         System.out.println("Begin Step 2: " + System.currentTimeMillis());
                         System.out.println("StartQuery");
-                        int index = AggregationTransactions.start(contractAgg, data.getSettings().getNrExpectedParticipants(), data);
-                        if (index == -1) return;
-                        ApplicationModel.getInstance().addProcess(data.getId(), index);
+                        synchronized (ApplicationModel.getInstance()) {
+                            int index = AggregationTransactions.start(contractAgg, data.getSettings().getNrExpectedParticipants(), data);
+                            if (index == -1) return;
+                            ApplicationModel.getInstance().addProcess(data.getId(), index);
 
-                        ApplicationController.ruleTimeLimit(contractQuery, contractAgg, data);
-                        System.out.println("End Step 2: " + System.currentTimeMillis());
+                            ApplicationController.ruleTimeLimit(contractQuery, contractAgg, data);
+                            System.out.println("End Step 2: " + System.currentTimeMillis());
+                        }
                         break;
                     case "RemoveQuery":
                         System.out.println("RemoveQuery");
@@ -110,7 +112,7 @@ public class ApplicationController {
                     case "StartAggregating":
                         System.out.println("Begin Step 3: " + System.currentTimeMillis());
                         if (ApplicationModel.getInstance().getOperatorThreshold() > aggregationProcess.getNrOperatorsSelected()
-                                || ApplicationModel.getInstance().getIndex(aggregationProcess.getId()) == null) return;
+                                && ApplicationModel.getInstance().getIndex(aggregationProcess.getId()) == null) return;
                         System.out.println("End Step 3: " + System.currentTimeMillis());
 
                         System.out.println("Begin Step 4: " + System.currentTimeMillis());
