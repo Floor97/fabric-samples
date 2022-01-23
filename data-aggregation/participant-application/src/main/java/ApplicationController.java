@@ -22,6 +22,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.NoSuchElementException;
 
 public class ApplicationController {
 
@@ -56,6 +57,9 @@ public class ApplicationController {
                         System.out.println("Unrecognised transaction");
                         break;
                 }
+	    } catch (NoSuchElementException e) {
+		try { Thread.sleep(5000); }
+		catch (Exception ignore) { }
             } catch (ChaincodeException e) {
                 System.err.println(e.getMessage());
             } catch (ContractException | IOException e) {
@@ -82,7 +86,10 @@ public class ApplicationController {
                         synchronized (ApplicationModel.getInstance()) {
                             System.out.println("StartQuery");
                             OperatorKeyStore keystore = AggregationTransactions.start(contractAgg, data.getSettings().getNrExpectedParticipants(), data);
-                            if (keystore.getIndex() == -1) return;
+                            if (keystore.getIndex() == -1) {
+                                System.out.println("End Step 2: " + System.currentTimeMillis());
+                                return;
+                            }
                             ApplicationModel.getInstance().addProcess(data.getId(), keystore);
 
                             ApplicationController.ruleTimeLimit(contractQuery, contractAgg, data, keystore);
