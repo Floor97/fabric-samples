@@ -20,9 +20,9 @@ def stepsFromFile(filep):
             if line.startswith("Begin Step "):
                 step = int(line[11:12]) - 1
                 time = int(line[line.rindex(" ")+1:])
-                if instep[step] != -1:
-                    print("Problem in " + filep)
-                    print("Begin step before last end (" + str(step) + ")")
+                #if instep[step] != -1:
+                #    print("Warning in " + filep)
+                #    print("Begin step before last end (" + str(step) + ")")
                 instep[step] = time
             if line.startswith("End Step "):
                 step = int(line[9:10]) - 1
@@ -31,20 +31,33 @@ def stepsFromFile(filep):
                     print("Problem in " + filep)
                     print("End step without start (" + str(step) + ")")
                 steptimes[step].append(time - instep[step])
+                if step == 1:
+                    print(time - instep[step])
                 instep[step] = -1
     # Average them
-    result = [ 0 ] * 8
+    result = [ -1 ] * 8
     for i, reps in enumerate(steptimes):
         if len(reps) == 0: continue
         avg = sum(reps) / len(reps)
         result[i] = avg
     return result
 
-askersteps = stepsFromFile(join(sys.argv[1], askerf))
-print("Asker steps: " + str(askersteps))
-for partif in participantsf:
-    psteps = stepsFromFile(join(sys.argv[1], partif))
-    print("P: " + str(psteps))
+pplperstep = [ 0 ] * 8
+totalperstep = [ 0 ] * 8
+
+allarrays = [ stepsFromFile(join(sys.argv[1], askerf)) ] + [
+        stepsFromFile(join(sys.argv[1], partif)) for partif in participantsf ]
+print("All arrays:\n" + "\n".join(map(lambda arr: " | ".join(map(lambda v: str(v).rjust(8), arr)), allarrays)))
+
+for arr in allarrays:
+    for i, v in enumerate(arr):
+        if v == -1: continue
+        pplperstep[i] += 1
+        totalperstep[i] += v
+
+print("Results:\n")
+for s in range(8):
+    print(totalperstep[s] / pplperstep[s])
 
 
 

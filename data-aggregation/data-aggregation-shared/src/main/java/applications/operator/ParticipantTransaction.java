@@ -20,13 +20,15 @@ public class ParticipantTransaction {
      * @return the response of the transaction.
      * @throws InterruptedException when the thread is interrupted when sleep is done.
      */
-    public static byte[] repeat(org.hyperledger.fabric.gateway.Transaction transaction, String[] args) throws InterruptedException {
+    public static byte[] repeat(org.hyperledger.fabric.gateway.Transaction transaction, String[] args, int forStep) throws InterruptedException {
         for (int i = 0; i < 10; i++) {
             try {
                 return transaction.submit(args);
             } catch (ContractException | TimeoutException | InterruptedException e) {
                 System.out.println("Failed to commit transaction, trying again..." + i);
-                Thread.sleep(new Random().nextInt(10) * 200 + i * 1000);
+                long sleepies = new Random().nextInt(10) * 200 + i * 1000;
+                System.out.println("For Step " + forStep + " Sleeping " + sleepies);
+                Thread.sleep(sleepies);
             }
         }
         throw new RuntimeException("Failed to commit transaction");
