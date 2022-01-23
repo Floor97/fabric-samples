@@ -14,6 +14,7 @@ import org.hyperledger.fabric.shim.ChaincodeException;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -53,6 +54,9 @@ public class ApplicationController {
                         System.out.println("Unrecognised transaction");
                         break;
                 }
+            } catch (NoSuchElementException e) {
+                try { Thread.sleep(5000);
+                } catch (InterruptedException ignore) { }
             } catch (ChaincodeException e) {
                 System.err.println(e.getMessage());
             } catch (ContractException | IOException e) {
@@ -79,7 +83,10 @@ public class ApplicationController {
                         System.out.println("StartQuery");
                         synchronized (ApplicationModel.getInstance()) {
                             int index = AggregationTransactions.start(contractAgg, data.getSettings().getNrExpectedParticipants(), data);
-                            if (index == -1) return;
+                            if (index == -1) {
+                                System.out.println("End Step 2: " + System.currentTimeMillis());
+                                return;
+                            }
                             ApplicationModel.getInstance().addProcess(data.getId(), index);
 
                             ApplicationController.ruleTimeLimit(contractQuery, contractAgg, data);
